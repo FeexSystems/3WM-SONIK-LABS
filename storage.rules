@@ -1,0 +1,62 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function isValidAudio() {
+      return request.resource.contentType.matches('audio/.*')
+             && request.resource.size < 50 * 1024 * 1024; // 50MB max
+    }
+    
+    function isValidImage() {
+      return request.resource.contentType.matches('image/.*')
+             && request.resource.size < 5 * 1024 * 1024; // 5MB max
+    }
+
+    // User-specific directories
+    match /users/{userId} {
+      match /profile/{imageId} {
+        allow read: if isAuthenticated();
+        allow write: if isAuthenticated() && isOwner(userId) && isValidImage();
+      }
+      
+      match /tracks/{trackId} {
+        allow read: if isAuthenticated() && isOwner(userId);
+        allow write: if isAuthenticated() && isOwner(userId) && isValidAudio();
+      }
+      
+      match /stems/{stemId} {
+        allow read: if isAuthenticated() && isOwner(userId);
+        allow write: if isAuthenticated() && isOwner(userId) && isValidAudio();
+      }
+    }
+    
+    // System AI generation jobs.
+    // The object path carries no userId, so ownership is resolved against the matching
+    // Firestore job document. Without this, any authenticated user could read (or overwrite)
+    // any other user's generated stems and masters.
+    function isJobOwner(jobId) {
+      return isAuthenticated()
+             && firestore.get(/databases/(default)/documents/generation_jobs/$(jobId)).data.userId == request.auth.uid;
+    }
+
+    match /generation_jobs/{jobId}/{fileId} {
+      allow read: if isJobOwner(jobId);
+      allow write: if isJobOwner(jobId) && isValidAudio();
+    }
+    
+    // Block all other paths by default
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

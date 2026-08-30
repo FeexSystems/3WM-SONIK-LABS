@@ -1,0 +1,30 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://postgres.kqfvfpiygvpsmvipngne:Bushfeexerthunder8%40@aws-1-eu-west-1.pooler.supabase.com:5432/postgres"
+      ],
+      "env": {
+        "SUPABASE_URL": "https://kqfvfpiygvpsmvipngne.supabase.co",
+        "SUPABASE_SERVICE_ROLE_KEY": "sb_secret_VZs7ZvKGrDYTt5DeglEZkw_6sRlEHAH"
+      }
+    },
+    "pinecone": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-pinecone"],
+      "env": {
+        "PINECONE_API_KEY": "pcsk_1CCB9_U9FymawZXFVzJhosoK6TPzEbjeWYQyphGxCwy8JgWnpMDThH4iz8zsZyWPLq4fX"
+      }
+    },
+    "firebase": {
+      "command": "npx",
+      "args": ["-y", "firebase-tools@latest", "mcp"],
+      "env": {
+        "FIREBASE_PROJECT_ID": "endless-lamp-461614-k2"
+      }
+    }
+  }
+}

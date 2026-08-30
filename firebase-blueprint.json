@@ -1,0 +1,34 @@
+{
+  "collections": [
+    {
+      "name": "tracks",
+      "fields": {
+        "title": "string",
+        "artist": "string",
+        "genre": "string",
+        "bpm": "number",
+        "key": "string",
+        "duration": "number",
+        "status": "string",
+        "settings": "map",
+        "stems": "array",
+        "history": "array",
+        "userId": "string"
+      }
+    },
+    {
+      "name": "generation_jobs",
+      "fields": {
+        "userId": "string",
+        "type": "string",
+        "status": "string",
+        "prompt": "string",
+        "inputParams": "map",
+        "assetUrl": "string",
+        "error": "string",
+        "createdAt": "timestamp",
+        "updatedAt": "timestamp"
+      }
+    }
+  ]
+}

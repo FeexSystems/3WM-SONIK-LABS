@@ -1,0 +1,1 @@
+sed -i '/import { transportBridge } from '\''..\/..\/audio\/transportBridge'\'';/!b;n;c \import { transportBridge } from '\''../../audio/transportBridge'\'';' src/components/navigation/TransportBar.tsx

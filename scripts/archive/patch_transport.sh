@@ -1,0 +1,1 @@
+sed -i 's/import { soundEngine } from '\''..\/..\/audio\/engine'\'';/import { soundEngine } from '\''..\/..\/audio\/engine'\'';\nimport { transportBridge } from '\''..\/..\/audio\/transportBridge'\'';/' src/components/navigation/TransportBar.tsx

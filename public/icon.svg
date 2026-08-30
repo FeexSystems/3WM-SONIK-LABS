@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="3WM SONIK">
+  <!--
+    3WM SONIK canonical app mark.
+    Three amber level bars — one per member of The Three Wise Men (Emar, Ricky, Kingpin) —
+    on the app's base surface colour (#0D0D0D). The amber (#F59E0B) matches the accent used
+    throughout the navigation and command palette.
+
+    This file is the source of truth for the raster icons in this directory. Regenerate them
+    with: node scripts/generate-icons.mjs
+  -->
+  <rect width="512" height="512" fill="#0D0D0D"/>
+  <g fill="#F59E0B">
+    <rect x="140" y="196" width="44" height="120" rx="22"/>
+    <rect x="234" y="140" width="44" height="232" rx="22"/>
+    <rect x="328" y="216" width="44" height="80"  rx="22"/>
+  </g>
+</svg>

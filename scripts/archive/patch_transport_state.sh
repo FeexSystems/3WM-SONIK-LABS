@@ -1,0 +1,1 @@
+sed -i '/\/\/ History state for Undo \/ Redo/i \  const [agentState, setAgentState] = useState(worldState.getState().agentState);\n\n  useEffect(() => {\n    return worldState.subscribe((state) => {\n      setAgentState(state.agentState);\n    });\n  }, []);\n' src/components/navigation/TransportBar.tsx

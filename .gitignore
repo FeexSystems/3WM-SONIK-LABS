@@ -1,0 +1,75 @@
+# Dependencies
+node_modules/
+dist/
+build/
+*.log
+
+# Environment variables and secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+firebase-applet-config.json
+firebase-blueprint.json
+*.key
+*.pem
+secrets/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+.nyc_output/
+
+# Build artifacts
+*.tsbuildinfo
+*.local
+
+# Temporary files
+tmp/
+temp/
+temp_*
+*.tmp
+logs/
+functions/lib/
+
+# Audio files (generated)
+*.wav
+*.mp3
+*.aiff
+*.flac
+
+# IDE / editor caches
+.vs/
+.windsurf/
+
+# Test & report artifacts
+test-results/
+playwright-report/
+.firebase/
+
+# Stray build / diagnostic output
+tsc-errors.txt
+tsc-out.log
+
+# Partial downloads & installers (never commit binaries)
+*.crdownload
+*.exe
+*.msi
+*.dmg
+*.zip
+
+# Custom Ignored Directories
+.temp/
+tools/
+

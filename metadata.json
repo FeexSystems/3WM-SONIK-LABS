@@ -1,0 +1,6 @@
+{
+  "name": "3WM - Sonic AI Platform",
+  "description": "AI-powered audio production platform for the Three Wise Men of Lagos Afrofusion featuring AI mixing, mastering, plugin automation, and track management.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

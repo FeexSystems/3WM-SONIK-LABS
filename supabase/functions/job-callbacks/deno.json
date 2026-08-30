@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "@upstash/qstash": "npm:@upstash/qstash@^2.11.3",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@^2.112.4"
+  }
+}
