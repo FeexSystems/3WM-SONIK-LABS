@@ -6,6 +6,7 @@ build/
 
 # Environment variables and secrets
 .env
+env.yaml
 .env.local
 .env.development.local
 .env.test.local
@@ -72,4 +73,6 @@ tsc-out.log
 # Custom Ignored Directories
 .temp/
 tools/
+scratch/
+demo_video_result.json
 

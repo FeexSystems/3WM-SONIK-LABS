@@ -273,7 +273,7 @@ src/
 ```json
 // firebase-applet-config.json
 {
-  "apiKey": "AIzaSyAY5G-jrg4FQjYt7WZdXSCmK4lSj6ZsuxE", // ❌ EXPOSED
+  "apiKey": "[REDACTED_FIREBASE_API_KEY]", // ❌ EXPOSED (REDACTED)
   "projectId": "third-glazing-k7c1c",
   "appId": "1:427877407103:web:6ade611fbf8ce429e4e24a"
 }

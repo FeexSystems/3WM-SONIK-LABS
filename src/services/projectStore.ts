@@ -355,11 +355,38 @@ export class ProjectStoreService {
     this.autoSaveStatus = 'saving';
     this.notifyStatus();
 
+    // For demo tracks, persist locally without triggering remote backend network failures
+    if (this.currentProject.id.startsWith('demo')) {
+      try {
+        localStorage.setItem(`3wm_project_${this.currentProject.id}`, JSON.stringify(this.currentProject));
+      } catch {
+        // Ignore local storage quota limits
+      }
+      this.isDirty = false;
+      this.autoSaveStatus = 'saved';
+      this.lastSavedAt = new Date().toISOString();
+      this.notifyStatus();
+      return true;
+    }
+
     try {
-      // Save track settings and metadata to backend API
-      const res = await fetch(`/api/tracks/${this.currentProject.id}/settings`, {
+      const isLocalhost =
+        typeof window !== 'undefined' &&
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+      const baseUrl = isLocalhost ? '' : (import.meta.env.VITE_API_BASE_URL || '');
+      const token =
+        typeof window !== 'undefined'
+          ? localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+          : null;
+
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(`${baseUrl}/api/tracks/${this.currentProject.id}/settings`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           settings: this.currentProject.settings,
           stems: this.currentProject.stems,

@@ -35,7 +35,7 @@ export function SonicOrb() {
     scene.add(orbGroup);
 
     // 1. Central Core Sphere with Custom Shaders & Glassmorphic Wireframe
-    const coreGeometry = new THREE.IcosahedronGeometry(1.35, 4);
+    const coreGeometry = new THREE.IcosahedronGeometry(1.35, 2);
     const coreMaterial = new THREE.MeshPhysicalMaterial({
       color: new THREE.Color('#F5A800'),
       emissive: new THREE.Color('#1A1208'),
@@ -199,19 +199,24 @@ export function SonicOrb() {
       const scalePulse = 1 + bassEnergy * 0.25 + Math.sin(clock.elapsed * 2) * 0.03;
       coreMesh.scale.set(scalePulse, scalePulse, scalePulse);
 
-      // Distort core vertices with audio wave
+      // Distort core vertices with audio wave via direct typed array access
       const posAttr = coreGeometry.attributes.position;
-      const origPos = originalPositions.array;
-      for (let i = 0; i < posAttr.count; i++) {
-        const u = origPos[i * 3];
-        const v = origPos[i * 3 + 1];
-        const w = origPos[i * 3 + 2];
-        const noise =
-          Math.sin(u * 2.5 + clock.elapsed * 3) *
-          Math.cos(v * 2.5 + clock.elapsed * 2) *
-          (0.08 + bassEnergy * 0.18);
+      const posArray = posAttr.array as Float32Array;
+      const origArray = originalPositions.array as Float32Array;
+      const len = origArray.length;
+      const factor = 0.08 + bassEnergy * 0.18;
+      const t3 = clock.elapsed * 3;
+      const t2 = clock.elapsed * 2;
 
-        posAttr.setXYZ(i, u * (1 + noise), v * (1 + noise), w * (1 + noise));
+      for (let i = 0; i < len; i += 3) {
+        const u = origArray[i];
+        const v = origArray[i + 1];
+        const w = origArray[i + 2];
+        const mult = 1 + Math.sin(u * 2.5 + t3) * Math.cos(v * 2.5 + t2) * factor;
+
+        posArray[i] = u * mult;
+        posArray[i + 1] = v * mult;
+        posArray[i + 2] = w * mult;
       }
       posAttr.needsUpdate = true;
 

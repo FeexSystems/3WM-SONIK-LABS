@@ -67,7 +67,12 @@ const getAllowedOrigins = (): (string | RegExp)[] => {
   const env = process.env.NODE_ENV || 'development';
 
   if (env === 'production') {
-    return ['https://3wm-sonik.com', 'https://www.3wm-sonik.com'];
+    return [
+      'https://3wm-sonik.com',
+      'https://www.3wm-sonik.com',
+      'https://endless-lamp-461614-k2.web.app',
+      'https://endless-lamp-461614-k2.firebaseapp.com',
+    ];
   }
 
   // Development origins

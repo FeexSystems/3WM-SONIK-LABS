@@ -38,6 +38,7 @@ export class LandingAudioEngine {
   private currentGenre = 'Amapiano';
   private timerId: number | null = null;
   private currentStep = 0;
+  private activeSources: Set<AudioScheduledSourceNode> = new Set();
 
   // Listeners
   private listeners: Set<() => void> = new Set();
@@ -137,7 +138,32 @@ export class LandingAudioEngine {
   private initCtx() {
     if (this.ctx) return;
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    this.ctx = new AudioContextClass();
+    this.ctx = new AudioContextClass({ sampleRate: 48000 });
+
+    const trackSource = (node: AudioScheduledSourceNode) => {
+      this.activeSources.add(node);
+      const existingEnded = node.onended;
+      node.onended = (ev) => {
+        this.activeSources.delete(node);
+        if (typeof existingEnded === 'function') {
+          existingEnded.call(node, ev);
+        }
+      };
+    };
+
+    const origOsc = this.ctx.createOscillator.bind(this.ctx);
+    this.ctx.createOscillator = () => {
+      const n = origOsc();
+      trackSource(n);
+      return n;
+    };
+
+    const origBuf = this.ctx.createBufferSource.bind(this.ctx);
+    this.ctx.createBufferSource = () => {
+      const n = origBuf();
+      trackSource(n);
+      return n;
+    };
 
     this.analyser = this.ctx.createAnalyser();
     this.analyser.fftSize = 128;
@@ -150,11 +176,11 @@ export class LandingAudioEngine {
     this.airEqNode = this.ctx.createBiquadFilter();
     this.airEqNode.type = 'highshelf';
     this.airEqNode.frequency.value = 10000;
-    this.airEqNode.gain.value = this.fx.emarAirEq ? 6 : 0;
+    this.airEqNode.gain.value = this.fx.emarAirEq ? 4 : 0;
 
     // Ricky Sub Punch WaveShaper Node
     this.subPunchNode = this.ctx.createWaveShaper();
-    this.subPunchNode.curve = this.makeDistortionCurve(this.fx.rickySubPunch ? 25 : 0) as any;
+    this.subPunchNode.curve = this.makeDistortionCurve(this.fx.rickySubPunch ? 15 : 0) as any;
 
     // Kingpin Vocal Doubler Delay Node
     this.doublerDelayNode = this.ctx.createDelay();
@@ -162,7 +188,15 @@ export class LandingAudioEngine {
     this.doublerGainNode = this.ctx.createGain();
     this.doublerGainNode.gain.value = this.fx.kingpinDoubler ? 0.6 : 0.0;
 
-    // Connect Stem Gains -> FX Chain -> Analyser -> Master Gain -> Destination
+    // Master Bus Brickwall Limiter
+    const limiter = this.ctx.createDynamicsCompressor();
+    limiter.threshold.setValueAtTime(-0.5, this.ctx.currentTime);
+    limiter.knee.setValueAtTime(0, this.ctx.currentTime);
+    limiter.ratio.setValueAtTime(20, this.ctx.currentTime);
+    limiter.attack.setValueAtTime(0.003, this.ctx.currentTime);
+    limiter.release.setValueAtTime(0.05, this.ctx.currentTime);
+
+    // Connect Stem Gains -> FX Chain -> Analyser -> Master Gain -> Limiter -> Destination
     const fxInputNode = this.airEqNode;
     this.airEqNode.connect(this.subPunchNode);
     this.subPunchNode.connect(this.analyser);
@@ -172,7 +206,8 @@ export class LandingAudioEngine {
     this.doublerGainNode.connect(this.analyser);
 
     this.analyser.connect(this.masterGain);
-    this.masterGain.connect(this.ctx.destination);
+    this.masterGain.connect(limiter);
+    limiter.connect(this.ctx.destination);
 
     // Wire individual stems to FX chain
     this.stems.forEach((stem) => {
@@ -188,13 +223,18 @@ export class LandingAudioEngine {
   }
 
   private makeDistortionCurve(amount: number): Float32Array {
-    const k = typeof amount === 'number' ? amount : 50;
-    const n_samples = 44100;
+    const k = typeof amount === 'number' ? amount : 10;
+    const n_samples = 48000;
     const curve = new Float32Array(n_samples);
-    const deg = Math.PI / 180;
+    if (k <= 0) {
+      for (let i = 0; i < n_samples; ++i) {
+        curve[i] = (i * 2) / n_samples - 1;
+      }
+      return curve;
+    }
     for (let i = 0; i < n_samples; ++i) {
       const x = (i * 2) / n_samples - 1;
-      curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+      curve[i] = Math.tanh(x * (1 + k / 20));
     }
     return curve;
   }
@@ -238,6 +278,27 @@ export class LandingAudioEngine {
       window.clearTimeout(this.timerId);
       this.timerId = null;
     }
+    this.stopAudition();
+
+    // Instantly choke and disconnect all active or scheduled sources
+    this.activeSources.forEach((node) => {
+      try {
+        node.stop();
+        node.disconnect();
+      } catch (e) {}
+    });
+    this.activeSources.clear();
+
+    // Smoothly clamp master and stem gains to eliminate any trailing delay/reverb ring
+    if (this.ctx && this.masterGain) {
+      const now = this.ctx.currentTime;
+      try {
+        this.masterGain.gain.cancelScheduledValues(now);
+        this.masterGain.gain.setValueAtTime(0, now);
+        this.masterGain.gain.setValueAtTime(0.8, now + 0.04);
+      } catch (e) {}
+    }
+
     this.notify();
   }
 
@@ -355,6 +416,7 @@ export class LandingAudioEngine {
     gain.connect(this.stemGains.drums || this.masterGain!);
 
     whiteNoise.start(time);
+    whiteNoise.stop(time + 0.035);
   }
 
   public playRim(time: number) {

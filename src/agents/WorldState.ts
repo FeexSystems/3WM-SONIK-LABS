@@ -23,6 +23,8 @@ class WorldStateManager {
   private unsubscribeFirestore: (() => void) | null = null;
   private currentProjectId: string | null = null;
 
+  private firestoreDisabled = false;
+
   constructor() {
     // Listen to local project changes to subscribe to the correct Firestore doc
     projectStore.subscribeProject((project) => {
@@ -39,7 +41,7 @@ class WorldStateManager {
       this.unsubscribeFirestore = null;
     }
 
-    if (!db) return;
+    if (!db || !projectId || projectId.startsWith('demo') || this.firestoreDisabled) return;
 
     try {
       const docRef = doc(db, 'world_states', projectId);
@@ -58,29 +60,47 @@ class WorldStateManager {
       }
 
       // Listen for changes
-      this.unsubscribeFirestore = onSnapshot(docRef, (doc) => {
-        if (doc.exists()) {
-          const data = doc.data();
-          if (data.agentStates) this.agentStates = data.agentStates;
-          if (data.activities) this.activities = data.activities;
-          this.notify();
+      this.unsubscribeFirestore = onSnapshot(
+        docRef,
+        (doc) => {
+          if (doc.exists()) {
+            const data = doc.data();
+            if (data.agentStates) this.agentStates = data.agentStates;
+            if (data.activities) this.activities = data.activities;
+            this.notify();
+          }
+        },
+        (error) => {
+          if (error?.code === 'permission-denied' || String(error).includes('permissions')) {
+            this.firestoreDisabled = true;
+          }
         }
-      });
-    } catch (err) {
-      console.error('Failed to subscribe to WorldState in Firestore', err);
+      );
+    } catch (err: any) {
+      if (err?.code === 'permission-denied' || String(err).includes('permissions')) {
+        this.firestoreDisabled = true;
+      } else {
+        console.warn('WorldState Firestore subscription deferred:', err?.message || err);
+      }
     }
   }
 
   private async persistToFirestore() {
-    if (!db || !this.currentProjectId) return;
+    if (!db || !this.currentProjectId || this.currentProjectId.startsWith('demo') || this.firestoreDisabled) {
+      return;
+    }
     try {
       const docRef = doc(db, 'world_states', this.currentProjectId);
       await updateDoc(docRef, {
         agentStates: this.agentStates,
         activities: this.activities,
       });
-    } catch (err) {
-      console.error('Failed to persist WorldState to Firestore', err);
+    } catch (err: any) {
+      if (err?.code === 'permission-denied' || String(err).includes('permissions')) {
+        this.firestoreDisabled = true;
+      } else {
+        console.warn('WorldState Firestore update deferred:', err?.message || err);
+      }
     }
   }
 
@@ -92,6 +112,7 @@ class WorldStateManager {
 
     return {
       projectId: project.id,
+      engine: '3ONIK',
       tempo: project.bpm,
       timeSignature: '4/4',
       key: project.key || 'C',
@@ -127,6 +148,16 @@ class WorldStateManager {
     this.persistToFirestore();
   }
 
+  public getActivities(): AgentActivityLog[] {
+    return [...this.activities];
+  }
+
+  public clearActivities() {
+    this.activities = [];
+    this.notify();
+    this.persistToFirestore();
+  }
+
   public subscribe(
     listener: (state: SonikWorldState & { activities: AgentActivityLog[] }) => void
   ) {
@@ -144,6 +175,7 @@ class WorldStateManager {
   private getEmptyState(): SonikWorldState & { activities: AgentActivityLog[] } {
     return {
       projectId: '',
+      engine: '3ONIK',
       tempo: 120,
       timeSignature: '4/4',
       key: 'C',

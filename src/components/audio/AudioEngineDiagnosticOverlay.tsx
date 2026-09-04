@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { soundEngine } from '../../audio/engine';
+import { PlatformRegistry } from '../../audio/platform/PlatformRegistry';
+import { productionDiagnostics, PerformanceSnapshot } from '../../telemetry/ProductionDiagnostics';
 import {
   Activity,
   Cpu,
@@ -11,6 +13,7 @@ import {
   AlertTriangle,
   Radio,
   Clock,
+  Sparkles,
 } from 'lucide-react';
 
 interface AudioEngineDiagnosticOverlayProps {
@@ -23,11 +26,16 @@ export const AudioEngineDiagnosticOverlay: React.FC<AudioEngineDiagnosticOverlay
   onClose,
 }) => {
   const [diag, setDiag] = useState(soundEngine.getEngineDiagnostics());
+  const [perfSnapshot, setPerfSnapshot] = useState<PerformanceSnapshot | null>(null);
   const [stressTesting, setStressTesting] = useState<boolean>(false);
   const [historyCpu, setHistoryCpu] = useState<number[]>([12, 14, 15, 13, 16, 14, 15, 18, 15, 14]);
 
   useEffect(() => {
     if (!isOpen) return;
+
+    const unsubscribe = productionDiagnostics.subscribe((snap) => {
+      setPerfSnapshot(snap);
+    });
 
     const interval = setInterval(() => {
       const data = soundEngine.getEngineDiagnostics();
@@ -35,7 +43,10 @@ export const AudioEngineDiagnosticOverlay: React.FC<AudioEngineDiagnosticOverlay
       setHistoryCpu((prev) => [...prev.slice(-19), data.cpuLoadPercent]);
     }, 400);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      unsubscribe();
+    };
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -213,16 +224,20 @@ export const AudioEngineDiagnosticOverlay: React.FC<AudioEngineDiagnosticOverlay
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs font-mono">
               <div className="p-2.5 bg-neutral-950 rounded-lg border border-neutral-800">
-                <span className="text-[10px] text-neutral-500 block">SAMPLE RATE</span>
-                <span className="text-white font-bold">{diag.sampleRate} Hz</span>
+                <span className="text-[10px] text-neutral-500 block">ENGINE MODE</span>
+                <span className="text-emerald-400 font-bold">
+                  {perfSnapshot?.engineMode || (PlatformRegistry.isNativeDesktop() ? 'Native-ASIO' : 'WebAudio-WASM')}
+                </span>
               </div>
               <div className="p-2.5 bg-neutral-950 rounded-lg border border-neutral-800">
-                <span className="text-[10px] text-neutral-500 block">BASE LATENCY</span>
-                <span className="text-cyan-400 font-bold">{diag.baseLatencyMs} ms</span>
+                <span className="text-[10px] text-neutral-500 block">DSP LATENCY</span>
+                <span className="text-cyan-400 font-bold">
+                  {perfSnapshot?.roundtripLatencyMs ? `${perfSnapshot.roundtripLatencyMs} ms` : `${diag.baseLatencyMs} ms`}
+                </span>
               </div>
               <div className="p-2.5 bg-neutral-950 rounded-lg border border-neutral-800">
-                <span className="text-[10px] text-neutral-500 block">RING BUFFER</span>
-                <span className="text-emerald-400 font-bold">16,384 Smp</span>
+                <span className="text-[10px] text-neutral-500 block">BUFFER UNDERRUNS</span>
+                <span className="text-emerald-400 font-bold">{perfSnapshot?.bufferUnderrunsCount ?? 0} xruns</span>
               </div>
               <div className="p-2.5 bg-neutral-950 rounded-lg border border-neutral-800">
                 <span className="text-[10px] text-neutral-500 block">ACTIVE VOICES</span>

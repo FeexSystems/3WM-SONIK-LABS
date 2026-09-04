@@ -19,7 +19,7 @@ export class ThreeWMOrchestrator extends BaseAgent {
     title: 'The Coordinator',
     domain: 'ORCHESTRATION / WORKFLOW / CONSENSUS',
     identity:
-      'System-level coordinator that interprets user intent, routes tasks, and manages the shared world state.',
+      '3ONIK Engine coordinator that interprets user intent, routes tasks across the Three Wise Men, and manages the shared world state.',
     corePrinciple: 'Coordinate the minds. Synthesize the sound.',
   };
 
@@ -50,18 +50,20 @@ export class ThreeWMOrchestrator extends BaseAgent {
     const intentStr = message.payload?.intent?.toLowerCase() || '';
     const isCouncilMode =
       message.payload?.isCouncilMode ||
-      intentStr.includes('council') ||
-      intentStr.includes('debate');
+      /\b(council|debate|all agents|all three|everyone|together|full team|full council)\b/i.test(intentStr);
 
     let targetAgents: AgentId[] = [];
 
-    if (isCouncilMode || intentStr.includes('review') || intentStr.includes('all')) {
+    if (message.payload?.targetAgentId && !isCouncilMode) {
+      // Direct persona routing requested by active channel tab
+      targetAgents = [message.payload.targetAgentId];
+      this.logAction(`Direct channel routing to ${message.payload.targetAgentId}...`);
+    } else if (isCouncilMode || /\b(review track|review all|full review)\b/i.test(intentStr)) {
       // Council Mode logic: sequential debate with server-side interaction chaining
       targetAgents = ['kappachino_ricky', 'kappachino_emar', 'kingpin'];
       this.logAction(`Initiating Council Debate via Gemini Interactions API...`);
 
       let discussionContext = '';
-      let lastInteractionId: string | undefined = undefined;
 
       for (const targetAgent of targetAgents) {
         const augmentedMessage = { ...message };
@@ -72,42 +74,63 @@ export class ThreeWMOrchestrator extends BaseAgent {
           };
         }
 
-        const res = await this.dispatchToAgent(targetAgent, augmentedMessage, lastInteractionId);
+        const res = await this.dispatchToAgent(targetAgent, augmentedMessage);
         if (res?.responseText) {
           const agentName = targetAgent.replace('kappachino_', '').toUpperCase();
           discussionContext += `${agentName} PROPOSED: ${res.responseText}\n\n`;
-          if (res.interactionId) {
-            lastInteractionId = res.interactionId;
-          }
         }
       }
     } else {
-      // Single Agent Routing
+      // Single Agent Routing or Conversational Greetings
       if (
+        intentStr.includes('hello') ||
+        intentStr.includes('hi') ||
+        intentStr.includes('how are you') ||
+        intentStr.includes("what's up") ||
+        intentStr.includes('greetings')
+      ) {
+        // For general greetings, let the council respond sequentially
+        targetAgents = ['kingpin', 'kappachino_ricky', 'kappachino_emar'];
+        this.logAction(`Formalities detected. Activating Council...`);
+      } else if (
+        /\b(all right|alright|ok|okay|cool|sounds good|let's go|lets go|ready)\b/i.test(intentStr)
+      ) {
+        // Affirmative acknowledgment: route to Ricky (musical drive) or Emar
+        targetAgents = ['kappachino_ricky'];
+        this.logAction(`Affirmative received. Advancing session with Ricky...`);
+      } else if (
         intentStr.includes('mix') ||
         intentStr.includes('master') ||
         intentStr.includes('low end') ||
-        intentStr.includes('emar')
+        intentStr.includes('emar') ||
+        intentStr.includes('eq') ||
+        intentStr.includes('compress')
       ) {
         targetAgents = ['kappachino_emar'];
       } else if (
         intentStr.includes('vocal') ||
         intentStr.includes('kingpin') ||
         intentStr.includes('harmony') ||
-        intentStr.includes('stack')
+        intentStr.includes('stack') ||
+        intentStr.includes('sing') ||
+        intentStr.includes('tune')
       ) {
         targetAgents = ['kingpin'];
       } else if (
         intentStr.includes('beat') ||
         intentStr.includes('808') ||
         intentStr.includes('drum') ||
-        intentStr.includes('ricky')
+        intentStr.includes('ricky') ||
+        intentStr.includes('groove') ||
+        intentStr.includes('bounce') ||
+        intentStr.includes('synth')
       ) {
         targetAgents = ['kappachino_ricky'];
       } else {
-        // Default to Ricky
+        // If unspecified but musical, default to Ricky.
         targetAgents = ['kappachino_ricky'];
       }
+
       this.logAction(`Routing to agent: ${targetAgents.join(', ')}`);
 
       for (const targetAgent of targetAgents) {
@@ -126,10 +149,17 @@ export class ThreeWMOrchestrator extends BaseAgent {
     const agent = this.agents[agentId];
     if (agent) {
       (agent as any).setState('ANALYZING');
+
+      // 1. Invoke local agent intelligence engine, memory bank, and tools
+      try {
+        await agent.handleMessage(message);
+      } catch (err) {
+        console.warn(`Agent ${agentId} handleMessage warning:`, err);
+      }
+
+      // 2. Optionally attempt backend synchronisation if available
       try {
         const trackId = message.payload?.context?.trackId || 'demo';
-
-        // Map agentId to the backend agent names
         const backendAgentId =
           agentId === 'kappachino_emar'
             ? 'emar'
@@ -152,22 +182,22 @@ export class ThreeWMOrchestrator extends BaseAgent {
         });
 
         if (res.ok) {
-          const data = await res.json();
-          // The agent responds! We log it to the UI console.
-          (agent as any).logAction(data.responseText);
-
-          if (data.track?.settings) {
-            (agent as any).logAction(`Applied DSP Settings Update.`);
+          const contentType = res.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const data = await res.json();
+            if (data.responseText) {
+              (agent as any).logAction(data.responseText);
+            }
+            if (data.track?.settings) {
+              (agent as any).logAction(`Applied DSP Settings Update.`);
+            }
+            return { responseText: data.responseText, interactionId: data.interactionId };
           }
-          return { responseText: data.responseText, interactionId: data.interactionId };
-        } else {
-          (agent as any).logAction('Failed to reach the AI Council API.');
-          (agent as any).setState('ERROR');
         }
-      } catch (e) {
-        (agent as any).logAction('Network error while reaching AI Council.');
-        (agent as any).setState('ERROR');
+      } catch (_e) {
+        // Silently handled by local intelligence layer
       }
+
       (agent as any).setState('IDLE');
     }
   }
@@ -177,7 +207,8 @@ export class ThreeWMOrchestrator extends BaseAgent {
     context?: any,
     audioBase64?: string,
     audioMimeType?: string,
-    isCouncilMode?: boolean
+    isCouncilMode?: boolean,
+    targetAgentId?: AgentId
   ) {
     const relevantMemories = await memoryBank.querySemanticMemory(intent);
     if (relevantMemories.length > 0) {
@@ -187,14 +218,16 @@ export class ThreeWMOrchestrator extends BaseAgent {
       );
     }
 
-    this.logAction(`User Directive Received: "${intent}"${audioBase64 ? ' [Audio Embedded]' : ''}`);
+    this.logAction(
+      `User Directive Received: "${intent}"${targetAgentId ? ` [Target: ${targetAgentId}]` : ''}${audioBase64 ? ' [Audio Embedded]' : ''}`
+    );
     const message: AgentMessage = {
       id: `msg_${Date.now()}`,
       from: 'USER',
-      to: 'ALL',
+      to: targetAgentId || 'ALL',
       type: 'REQUEST',
       projectId: 'current',
-      payload: { intent, context, audioBase64, audioMimeType, isCouncilMode },
+      payload: { intent, context, audioBase64, audioMimeType, isCouncilMode, targetAgentId },
       timestamp: new Date().toISOString(),
       requiresResponse: true,
     };

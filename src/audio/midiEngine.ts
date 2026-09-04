@@ -269,6 +269,16 @@ export class MidiSynthesizer {
     this.masterGain.connect(destinationNode);
   }
 
+  public stopAllNotes() {
+    if (!this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+    try {
+      this.masterGain.gain.cancelScheduledValues(now);
+      this.masterGain.gain.setValueAtTime(0, now);
+      this.masterGain.gain.setValueAtTime(0.8, now + 0.04);
+    } catch (e) {}
+  }
+
   public playNote(
     pitch: number,
     velocity: number = 100,

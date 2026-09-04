@@ -60,15 +60,22 @@ export function Nav({ onEnterStudio, onOpenVoiceModal }: NavProps) {
           <span className="text-[22px] drop-shadow-[0_0_8px_#f5a800]">🔱</span> 3WM SONIK
         </a>
 
-        <div className="hidden items-center gap-10 md:flex">
+        <div className="hidden items-center gap-6 md:gap-8 lg:gap-10 md:flex">
           {links.map(([label, href]) => (
             <a
               key={href}
               href={href}
-              className="text-xs uppercase tracking-widest text-[var(--muted)] transition hover:text-[#f5a800] relative group"
+              onClick={(e) => {
+                e.preventDefault();
+                const element = document.querySelector(href);
+                if (element) {
+                  element.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+              className="text-xs font-mono font-semibold uppercase tracking-widest text-neutral-300 hover:text-[#f5a800] transition-all relative group py-2 px-1"
             >
               {label}
-              <span className="absolute -bottom-1 left-0 w-0 h-px bg-[#f5a800] transition-all group-hover:w-full" />
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#f5a800] transition-all group-hover:w-full shadow-[0_0_8px_#f5a800]" />
             </a>
           ))}
         </div>
@@ -145,10 +152,11 @@ export function Nav({ onEnterStudio, onOpenVoiceModal }: NavProps) {
                   href={href}
                   onClick={(e) => {
                     e.preventDefault();
+                    setOpen(false);
                     const element = document.querySelector(href);
                     element?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="text-sm font-medium text-neutral-300 hover:text-[var(--foreground-bright)] transition-colors"
+                  className="block w-full py-2.5 px-4 text-sm font-mono font-medium tracking-wider text-neutral-200 hover:text-[#f5a800] hover:bg-[#f5a800]/10 rounded-xl transition-all border border-transparent hover:border-[#f5a800]/20"
                   aria-label={`Navigate to ${label} section`}
                 >
                   {label}

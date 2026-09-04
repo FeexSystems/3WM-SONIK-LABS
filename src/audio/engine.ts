@@ -44,6 +44,7 @@ export class SonicAudioEngine {
   private scheduleAheadTime = 0.1;
   private loopLengthSteps = 16;
   private metronomeEnabled = false;
+  private activeTransientSources: Set<AudioScheduledSourceNode> = new Set();
 
   // Audio Context State Management
   private audioContextState: AudioContextState | 'uninitialized' = 'uninitialized';
@@ -133,11 +134,25 @@ export class SonicAudioEngine {
       // Continue without worklet support
     }
 
-    // Instrument AudioContext for telemetry
+    // Track transient audio sources for instant playback choking & loop stopping
+    const trackTransient = (node: AudioScheduledSourceNode) => {
+      if ((node as any).__persistent) return;
+      this.activeTransientSources.add(node);
+      const existingOnEnded = node.onended;
+      node.onended = (ev) => {
+        this.activeTransientSources.delete(node);
+        if (typeof existingOnEnded === 'function') {
+          existingOnEnded.call(node, ev);
+        }
+      };
+    };
+
+    // Instrument AudioContext for telemetry and active voice tracking
     const origCreateOsc = this.ctx.createOscillator.bind(this.ctx);
     this.ctx.createOscillator = () => {
       const node = origCreateOsc();
       AudioTelemetry.trackVoiceStart(node);
+      trackTransient(node);
       return node;
     };
 
@@ -145,6 +160,7 @@ export class SonicAudioEngine {
     this.ctx.createBufferSource = () => {
       const node = origCreateBufferSource();
       AudioTelemetry.trackVoiceStart(node);
+      trackTransient(node);
       return node;
     };
 
@@ -726,11 +742,59 @@ export class SonicAudioEngine {
   public stopPlayback() {
     this.isPlaying = false;
     if (this.timerId) {
+      window.clearTimeout(this.timerId);
       window.clearInterval(this.timerId);
       this.timerId = null;
     }
     this.currentStep = 0;
     transportBridge.setPlayState(false);
+
+    // 1. Instantly silence 808 synthesizer voices and reset glide
+    try {
+      sonik808Engine.stopAll();
+    } catch (e) {}
+
+    // 2. Instantly choke all MIDI Synthesizer notes and drum samples
+    try {
+      midiSynth.stopAllNotes();
+    } catch (e) {}
+
+    // 3. Stop and disconnect every active/scheduled transient oscillator or buffer source
+    this.activeTransientSources.forEach((node) => {
+      try {
+        node.stop();
+        node.disconnect();
+      } catch (e) {}
+    });
+    this.activeTransientSources.clear();
+
+    // 4. Stop all vocal tracks
+    this.vocalTracks.forEach((vt) => {
+      if (vt.source) {
+        try {
+          vt.source.stop();
+        } catch (e) {}
+      }
+    });
+
+    // 5. Instantly clamp and smoothly reset sidechain and master buses to cut off any delay feedback or resonance
+    if (this.ctx) {
+      const now = this.ctx.currentTime;
+      if (this.sidechainDuckingGain) {
+        try {
+          this.sidechainDuckingGain.gain.cancelScheduledValues(now);
+          this.sidechainDuckingGain.gain.setValueAtTime(0, now);
+          this.sidechainDuckingGain.gain.setValueAtTime(1.0, now + 0.04);
+        } catch (e) {}
+      }
+      if (this.masterGain) {
+        try {
+          this.masterGain.gain.cancelScheduledValues(now);
+          this.masterGain.gain.setValueAtTime(0, now);
+          this.masterGain.gain.setValueAtTime(0.82, now + 0.04);
+        } catch (e) {}
+      }
+    }
   }
 
   public getRingBufferStats(): RingBufferStats {

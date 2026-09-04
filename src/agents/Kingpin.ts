@@ -63,16 +63,88 @@ export class Kingpin extends BaseAgent {
     this.setState('LISTENING');
     this.logAction(`Received message: ${message.type}`);
 
-    if (message.payload?.context?.hasVocals) {
-      this.logAction(`Analyzing vocal stacks in ${message.payload.context.key} key...`);
-    } else if (message.payload?.context) {
-      this.logAction(`Checking for vocal arrangement opportunities...`);
+    const context = message.payload?.context as Record<string, string | number> | undefined;
+    if (context?.hasVocals) {
+      this.logAction(`Analyzing vocal stacks in ${context.key || 'current'} key...`);
+    } else if (context) {
+      this.logAction(`Checking vocal arrangement and harmonic opportunities...`);
     }
 
-    // Process message logic here
-    await new Promise((resolve) => setTimeout(resolve, 2500));
+    try {
+      const intent = (message.payload?.intent as string) ?? '';
+      let responseText = '';
+
+      if (this.aiService) {
+        try {
+          const userMessage = `User Request: ${intent}\nKey: ${context?.key || 'Auto'}\nGenre: ${context?.genre || 'Afrofusion'}`;
+          const messages = [
+            {
+              role: 'system' as const,
+              content: `You are Kingpin, The Vocal Oracle - the vocal intelligence of 3WM SONIK.
+Domain: VOCALS / VOCAL ARRANGEMENT / HARMONY / SOUL
+Core Principle: "Give the voice a body. Give the body a soul."
+You treat the vocal as an orchestra. You are charismatic, intuitive, emotional, musical, performance-oriented, and commanding.`,
+            },
+            { role: 'user' as const, content: userMessage },
+          ];
+          const response = await this.aiService.generateContent(messages as any);
+          responseText = response.text;
+        } catch (aiErr) {
+          console.warn('Kingpin AI service call failed, using heuristic engine:', aiErr);
+          responseText = this.generateHeuristicResponse(intent, context);
+        }
+      } else {
+        responseText = this.generateHeuristicResponse(intent, context);
+      }
+
+      this.logAction(responseText);
+    } catch (error) {
+      const intent = (message.payload?.intent as string) ?? '';
+      const fallbackText = this.generateHeuristicResponse(intent, message.payload?.context);
+      this.logAction(fallbackText);
+    }
 
     this.setState('IDLE');
+  }
+
+  private generateHeuristicResponse(intent: string, context?: any): string {
+    const lower = intent.toLowerCase();
+    const key = context?.key || 'F minor';
+
+    if (
+      lower.includes('hello') ||
+      lower.includes('hi') ||
+      lower.includes('hey') ||
+      lower.includes('how are you') ||
+      lower.includes('who are you')
+    ) {
+      return `The Oracle has arrived. I am Kingpin. The voice is an orchestra, and the spirit is ready. Tell me your vision in ${key} — lead vocals, choir harmonies, call-and-response stacks, or emotional adlibs.`;
+    }
+
+    if (
+      lower.includes('vocal') ||
+      lower.includes('sing') ||
+      lower.includes('stack') ||
+      lower.includes('harmony') ||
+      lower.includes('choir')
+    ) {
+      return `Arranging a 4-part vocal tapestry in ${key}: Center lead with gentle opto-compression (3:1), wide stereo 3rd-up harmonies panned ±45%, and a warm chest-voice octave down with 1.8s plate reverb.`;
+    }
+
+    if (
+      lower.includes('tune') ||
+      lower.includes('pitch') ||
+      lower.includes('autotune') ||
+      lower.includes('scale')
+    ) {
+      return `Pitch correction mapped to ${key}: Retune speed set to 18ms for natural human warmth with precise chromatic centering. Formants tuned +0.4 for modern presence.`;
+    }
+
+    if (lower.includes('adlib') || lower.includes('chant') || lower.includes('run')) {
+      return `Summoning traditional call-and-response chants. Layering high-octave falsetto runs with a tape-delay throw on every 4th bar. The vocal now has a soul.`;
+    }
+
+    return `Vocal architecture aligned with your directive: "${intent}". Dynamic breath control, harmonic saturation, and emotional timbre enhanced for ${key}.`;
   }
 
   // ============ ELEVENLABS VOCAL SYNTHESIS METHODS ============

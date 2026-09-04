@@ -1,14 +1,15 @@
+import { vi } from 'vitest';
 import { Request, Response, NextFunction } from 'express';
 import { cacheGetRequests, invalidateCache } from '../cache';
 import { redisClient } from '../../lib/redis';
 
 // Mock Redis Client
-jest.mock('../../lib/redis', () => ({
+vi.mock('../../lib/redis', () => ({
   redisClient: {
-    isReady: jest.fn(),
-    get: jest.fn(),
-    set: jest.fn(),
-    getClient: jest.fn(),
+    isReady: vi.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
+    getClient: vi.fn(),
   },
 }));
 
@@ -24,11 +25,11 @@ describe('Cache Middleware', () => {
       user: { uid: 'user123' },
     };
     res = {
-      setHeader: jest.fn(),
-      json: jest.fn(),
+      setHeader: vi.fn(),
+      json: vi.fn(),
     };
-    next = jest.fn();
-    jest.clearAllMocks();
+    next = vi.fn();
+    vi.clearAllMocks();
   });
 
   it('should skip caching if not a GET request', async () => {
@@ -42,7 +43,7 @@ describe('Cache Middleware', () => {
   });
 
   it('should skip caching if Redis is not ready', async () => {
-    (redisClient.isReady as jest.Mock).mockReturnValue(false);
+    (redisClient.isReady as any).mockReturnValue(false);
     const middleware = cacheGetRequests(60);
 
     await middleware(req as Request, res as Response, next);
@@ -52,37 +53,38 @@ describe('Cache Middleware', () => {
   });
 
   it('should return cached response if hit', async () => {
-    (redisClient.isReady as jest.Mock).mockReturnValue(true);
-    (redisClient.get as jest.Mock).mockResolvedValue(JSON.stringify({ data: 'cached' }));
+    (redisClient.isReady as any).mockReturnValue(true);
+    (redisClient.get as any).mockResolvedValue(JSON.stringify({ data: 'cached' }));
 
     const middleware = cacheGetRequests(60);
 
     await middleware(req as Request, res as Response, next);
 
+    expect(redisClient.get).toHaveBeenCalledWith('cache:user123:/api/test');
     expect(res.setHeader).toHaveBeenCalledWith('X-Cache', 'HIT');
     expect(res.json).toHaveBeenCalledWith({ data: 'cached' });
     expect(next).not.toHaveBeenCalled();
   });
 
   it('should cache response if miss', async () => {
-    (redisClient.isReady as jest.Mock).mockReturnValue(true);
-    (redisClient.get as jest.Mock).mockResolvedValue(null);
-    (redisClient.set as jest.Mock).mockResolvedValue(true);
+    (redisClient.isReady as any).mockReturnValue(true);
+    (redisClient.get as any).mockResolvedValue(null);
+    (redisClient.set as any).mockResolvedValue(true);
 
     const middleware = cacheGetRequests(60);
-
     await middleware(req as Request, res as Response, next);
 
+    expect(redisClient.get).toHaveBeenCalledWith('cache:user123:/api/test');
     expect(next).toHaveBeenCalled();
 
-    // Simulate what the router does by calling the monkey-patched res.json
+    // Simulate express response routing to correctly trigger the monkey-patched res.json
     res.statusCode = 200;
-    (res as any).json({ data: 'new' });
+    (res.json as any)({ new: 'data' });
 
     expect(res.setHeader).toHaveBeenCalledWith('X-Cache', 'MISS');
     expect(redisClient.set).toHaveBeenCalledWith(
       'cache:user123:/api/test',
-      JSON.stringify({ data: 'new' }),
+      JSON.stringify({ new: 'data' }),
       60
     );
   });

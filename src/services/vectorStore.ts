@@ -36,7 +36,7 @@ export class VectorStoreService {
   private memoryIndex: any = null;
 
   // Base URL for API requests
-  private apiBaseUrl = '/api/v1/vector';
+  private apiBaseUrl = `${import.meta.env.VITE_API_BASE_URL || ''}/api/v1/vector`;
 
   // Browser In-Memory Vector Cache
   private inMemoryVectors: Map<string, VectorRecord> = new Map();

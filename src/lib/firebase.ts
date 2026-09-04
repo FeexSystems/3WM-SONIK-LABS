@@ -13,7 +13,14 @@ import { getAnalytics, isSupported as isAnalyticsSupported } from 'firebase/anal
 import { getPerformance } from 'firebase/performance';
 import { getAI, getGenerativeModel, GoogleAIBackend } from 'firebase/ai';
 
+import {
+  initializeAppCheck,
+  ReCaptchaEnterpriseProvider,
+  ReCaptchaV3Provider,
+} from 'firebase/app-check';
+
 import type { FirebaseOptions } from 'firebase/app';
+import type { AppCheck } from 'firebase/app-check';
 
 /**
  * Build the Firebase client config.
@@ -56,6 +63,7 @@ let analytics: ReturnType<typeof getAnalytics> | null = null;
 let performance: ReturnType<typeof getPerformance> | null = null;
 let ai: ReturnType<typeof getAI> | null = null;
 let geminiModel: ReturnType<typeof getGenerativeModel> | null = null;
+let appCheck: AppCheck | null = null;
 
 if (firebaseConfig) {
   app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
@@ -67,6 +75,27 @@ if (firebaseConfig) {
   db = getFirestore(app);
   storage = getStorage(app);
   functions = getFunctions(app);
+
+  // App Check initialization
+  if (typeof window !== 'undefined') {
+    const recaptchaKey =
+      import.meta.env.VITE_FIREBASE_RECAPTCHA_SITE_KEY || import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+    if (import.meta.env.DEV) {
+      // Enable debug provider in local development
+      (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    }
+    if (recaptchaKey && app) {
+      try {
+        appCheck = initializeAppCheck(app, {
+          provider: new ReCaptchaEnterpriseProvider(recaptchaKey),
+          isTokenAutoRefreshEnabled: true,
+        });
+      } catch (err) {
+        console.warn('Firebase App Check initialization skipped:', err);
+      }
+    }
+  }
+
   // AI — consolidated from src/firebase.ts (was separate client)
   try {
     ai = getAI(app, { backend: new GoogleAIBackend() });
@@ -104,4 +133,5 @@ export {
   performance,
   ai,
   geminiModel,
+  appCheck,
 };

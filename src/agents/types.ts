@@ -69,6 +69,7 @@ export interface AgentAction {
 
 export interface SonikWorldState {
   projectId: string;
+  engine?: '3ONIK';
   tempo: number;
   timeSignature: string;
   key: string;

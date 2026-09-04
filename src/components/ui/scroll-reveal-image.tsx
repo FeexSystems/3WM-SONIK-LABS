@@ -1,10 +1,11 @@
-import React, { useRef } from 'react';
+﻿import React, { useRef } from 'react';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 
 export interface ScrollRevealImageProps {
   // Image
   src: string;
   alt: string;
+  quality?: number;
   priority?: boolean;
 
   // Container
@@ -13,10 +14,10 @@ export interface ScrollRevealImageProps {
   toWidth?: string;
   fromRadius?: string;
   toRadius?: string;
-  /** Scroll progress (0–1) at which border radius starts animating */
+  /** Scroll progress (0-1) at which border radius starts animating */
   radiusStart?: number;
 
-  // Inner image — wider than container to allow the zoom effect
+  // Inner image - wider than container to allow the zoom effect
   innerWidth?: string;
   fromScale?: number;
   toScale?: number;
@@ -36,9 +37,10 @@ export interface ScrollRevealImageProps {
   imageClassName?: string;
 }
 
-export const ScrollRevealImage: React.FC<ScrollRevealImageProps> = ({
+export function ScrollRevealImage({
   src,
   alt,
+  quality = 100,
   priority = false,
   height = '80vh',
   fromWidth = '40vw',
@@ -53,9 +55,9 @@ export const ScrollRevealImage: React.FC<ScrollRevealImageProps> = ({
   damping = 80,
   scrollOffset = ['start end', 'start start'] as const,
   container,
-  className,
-  imageClassName,
-}) => {
+  className = '',
+  imageClassName = '',
+}: ScrollRevealImageProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const { scrollYProgress } = useScroll({
@@ -100,12 +102,12 @@ export const ScrollRevealImage: React.FC<ScrollRevealImageProps> = ({
         <img
           src={src}
           alt={alt}
+          className={`object-cover w-full h-full ${imageClassName}`}
           loading={priority ? 'eager' : 'lazy'}
-          className={`h-full w-full object-cover shadow-2xl ${imageClassName ? ` ${imageClassName}` : ''}`}
         />
       </motion.div>
     </motion.div>
   );
-};
+}
 
 export default ScrollRevealImage;

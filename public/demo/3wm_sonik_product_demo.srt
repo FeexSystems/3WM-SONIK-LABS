@@ -1,0 +1,67 @@
+1
+00:00:00,260 --> 00:00:03,880
+Welcome to 3WM SONIK — the world's first
+
+2
+00:00:04,050 --> 00:00:07,380
+AI-native musical operating system built
+
+3
+00:00:07,470 --> 00:00:10,390
+for Afrobeat and modern music producers.
+
+4
+00:00:10,620 --> 00:00:13,270
+For decades, digital audio workstations
+
+5
+00:00:13,570 --> 00:00:16,000
+have remained cold, isolated
+
+6
+00:00:16,300 --> 00:00:17,070
+environments.
+
+7
+00:00:17,290 --> 00:00:20,790
+3WM SONIK changes everything by
+
+8
+00:00:21,260 --> 00:00:23,820
+introducing The Three Wise Men — a
+
+9
+00:00:23,860 --> 00:00:26,040
+real-time collaborative AI council
+
+10
+00:00:26,210 --> 00:00:28,300
+living directly inside your production
+
+11
+00:00:28,510 --> 00:00:31,340
+DAW: Kappachino Emar — The Scientist —
+
+12
+00:00:31,370 --> 00:00:34,060
+commanding DSP acoustics, spectral
+
+13
+00:00:34,100 --> 00:00:37,580
+frequency physics, and LUFS mastering
+
+14
+00:00:37,700 --> 00:00:38,710
+precision.
+
+15
+00:00:39,110 --> 00:00:41,250
+Kappachino Ricky — The Sound God —
+
+16
+00:00:41,330 --> 00:00:43,700
+generating polyrhythmic bounce,
+
+17
+00:00:44,020 --> 00:00:44,660
+syncopated

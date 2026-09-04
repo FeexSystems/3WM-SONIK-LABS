@@ -4,6 +4,13 @@ import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { ViteImageOptimizer } from 'vite-plugin-image-optimizer';
 import path from 'path';
+import fs from 'fs';
+
+// Ensure local workspace temp dir is used to avoid EPERM on system temp
+const localTemp = path.resolve(__dirname, '.temp');
+fs.mkdirSync(localTemp, { recursive: true });
+process.env.TEMP = localTemp;
+process.env.TMP = localTemp;
 
 // Plugin to prevent accidental imports of server-side client files into the frontend bundle
 const preventServerSideImports = () => ({
@@ -46,8 +53,9 @@ export default defineConfig({
     }),
     preventServerSideImports(),
     VitePWA({
+      disable: process.env.DISABLE_PWA === 'true',
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.ico'],
       manifest: {
         name: '3WM SONIK - AI Music Production Platform',
         short_name: '3WM SONIK',

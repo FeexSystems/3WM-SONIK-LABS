@@ -24,6 +24,7 @@ export const AuthModal: React.FC = () => {
     signUpWithEmail,
     signInWithGoogle,
     signInWithGithub,
+    signInAsGuest,
     sendPasswordReset,
     error,
     clearError,
@@ -148,6 +149,18 @@ export const AuthModal: React.FC = () => {
               <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
               <span>Password reset instructions sent to {email}. Check your inbox!</span>
             </div>
+          )}
+
+          {/* Instant Guest / Demo Mode Button - Prominent VIP & Judge Access */}
+          {authModalMode !== 'reset' && (
+            <button
+              type="button"
+              onClick={() => signInAsGuest()}
+              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#2affa3]/20 via-[#f5a800]/20 to-[#2affa3]/20 hover:from-[#2affa3]/30 hover:to-[#f5a800]/30 border border-[#2affa3]/50 text-[#2affa3] font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(42,255,163,0.15)] transition-all active:scale-[0.98]"
+            >
+              <Sparkles className="w-4 h-4 text-[#2affa3] animate-pulse" />
+              <span className="font-bold">⚡ Instant Demo Studio Access (Judge Mode)</span>
+            </button>
           )}
 
           {/* OAuth Quick Connect */}
@@ -309,6 +322,18 @@ export const AuthModal: React.FC = () => {
               )}
             </button>
           </form>
+
+          {/* Instant Guest / Demo Mode Button */}
+          {authModalMode !== 'reset' && (
+            <button
+              type="button"
+              onClick={() => signInAsGuest()}
+              className="w-full py-2.5 px-3 rounded-xl bg-neutral-900/90 hover:bg-neutral-800/90 border border-[#2affa3]/30 text-[#2affa3] font-mono text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 transition active:scale-[0.98]"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#2affa3]" />
+              <span>⚡ Instant Demo Studio Access (Judge Mode)</span>
+            </button>
+          )}
 
           {/* Reset password back to signin */}
           {authModalMode === 'reset' && (

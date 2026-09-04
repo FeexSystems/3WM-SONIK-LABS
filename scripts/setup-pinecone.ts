@@ -1,7 +1,7 @@
 import { Pinecone } from '@pinecone-database/pinecone';
 
 // Temporarily use the API key directly for setup
-const apiKey = 'pcsk_1CCB9_U9FymawZXFVzJhosoK6TPzEbjeWYQyphGxCwy8JgWnpMDThH4iz8zsZyWPLq4fX';
+const apiKey = process.env.PINECONE_API_KEY || '';
 
 if (!apiKey) {
   console.error('PINECONE_API_KEY not found in environment variables');

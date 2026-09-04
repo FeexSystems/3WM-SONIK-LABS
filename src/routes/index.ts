@@ -34,9 +34,10 @@ v1Router.use('/', publicRoutes);
 // Mount versioned API routes
 router.use('/v1', v1Router);
 
-// Unversioned alias retained for backward compatibility — /api/voice/* is the path
-// documented in the README and used by src/services/geminiTtsService.ts. Both mounts share
-// the same router, so the auth/rate-limit/validation guards in voice.routes.ts apply to both.
+// Unversioned aliases retained for backward compatibility
 router.use('/voice', voiceRoutes);
+router.use('/tracks', tracksRoutes);
+router.use('/projects', projectsRoutes);
+router.use('/dashboard', dashboardRoutes);
 
 export default router;

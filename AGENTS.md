@@ -6,9 +6,20 @@ Transform 3WM SONIK into a sophisticated, production-grade, cinematic AI music-p
 It is NOT a generic SaaS dashboard, nor a chatbot with music tools. It is an AI-native musical operating environment in which three specialized musical intelligences collaborate directly with the producer inside a real production workspace.
 The producer remains the creative authority. The Three provide intelligence. The Orchestrator coordinates the system.
 
+## 3ONIK — THE AGENTS ENGINE
+
+**3ONIK** is the proprietary AI multi-agent intelligence and audio reasoning engine that powers the 3WM SONIK operating workstation.
+It serves as the cognitive kernel driving:
+- The Three Wise Men agent triad (**Kappachino Emar**, **Kappachino Ricky**, **Kingpin**) and the **ThreeWM Orchestrator**.
+- Real-time synchronization of the **Shared World Model** (`SonikWorldState`) across audio DSP, MIDI sequencing, mixer tracks, and vocal chains.
+- High-reasoning intent interpretation via Gemini 3.7 with structured tool verification.
+- Bidirectional voice uplink via the 3ONIK Acoustic Node and Gemini Live streaming.
+
+> **"3ONIK is the brain; 3WM SONIK is the sound."**
+
 ## THE THREE WISE MEN AGENT SYSTEM
 
-The Three Wise Men become the operating intelligence of the DAW itself.
+The Three Wise Men become the operating intelligence of the DAW itself, orchestrated by the 3ONIK Engine.
 
 ### KAPPACHINO EMAR — THE SCIENTIST
 

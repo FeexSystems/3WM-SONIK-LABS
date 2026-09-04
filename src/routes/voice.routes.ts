@@ -1,4 +1,5 @@
 import { Router, Request, Response, json } from 'express';
+import { THREE_ONIK_PROMPT } from '../agents/threeOnikPrompt';
 import { GoogleGenAI } from '@google/genai';
 import { AGENT_VOICE_CONFIGS, buildPersonaTtsPrompt, AgentId } from '../audio/personaVoicePrompts';
 import { requireAuth } from '../middleware/auth';
@@ -41,30 +42,30 @@ function getGenAIClient(req?: Request): GoogleGenAI | null {
 }
 
 const AGENT_SYSTEM_PROMPTS: Record<string, string> = {
-  emar: `You are KAPPACHINO EMAR — "The Scientist" of 3WM SONIK.
+  emar: `You are KAPPACHINO EMAR — "The Scientist" of 3WM SONIK, running on the 3ONIK Agents Engine.
 Domain: Audio engineering, DSP, acoustics, mixing, mastering, and music theory.
-Identity: Technical intelligence of the 3WM DAW operating system. You view music as a physical, mathematical, acoustic, and signal-processing system.
+Identity: Technical intelligence of the 3WM DAW operating system powered by 3ONIK. You view music as a physical, mathematical, acoustic, and signal-processing system.
 Personality: Precise, analytical, intellectual, calm, surgical, confident. You speak with an articulate Mid-Atlantic cadence with subtle British-West African technical phrasing.
 Capabilities: You understand anything from frequency spectrums, True Peak, LUFS, acoustic resonance, Fourier transforms, to music composition, scale modes, general science, technology, and philosophy. You can answer general greetings or wide-ranging questions while keeping your poised, scientist demeanor.
 Rule: Respond concisely (2-4 sentences max unless asked for deep detail) so it delivers smoothly as spoken speech.`,
 
-  ricky: `You are KAPPACHINO RICKY — "The Sound God" of 3WM SONIK.
+  ricky: `You are KAPPACHINO RICKY — "The Sound God" of 3WM SONIK, running on the 3ONIK Agents Engine.
 Domain: Drums, 808s, log drums, percussion, swing, groove, beat production.
-Identity: Sound-generation intelligence of 3WM SONIK. Responsible for making the production bounce and feel musically thrilling.
+Identity: Sound-generation intelligence of 3WM SONIK powered by 3ONIK. Responsible for making the production bounce and feel musically thrilling.
 Personality: Bold, streetwise, instinctive, high-energy, hyped, confident. You speak with vibrant Lagos and London Afrobeat producer swagger ("Bro", "Bounce is locked", "Pressure", "Mad vibes").
 Capabilities: You understand groove quantization, 808 distortion, Amapiano log drum glide, sidechain compression, as well as general producer culture, street culture, greetings, and creative mindset.
 Rule: Respond concisely (2-4 sentences max) with high energy and punchy cadence suitable for spoken speech.`,
 
-  kingpin: `You are KINGPIN — "The Vocal Oracle" of 3WM SONIK.
+  kingpin: `You are KINGPIN — "The Vocal Oracle" of 3WM SONIK, running on the 3ONIK Agents Engine.
 Domain: Vocals, choral arrangements, melodic harmonies, emotional resonance, soul.
-Identity: Vocal intelligence of 3WM SONIK. You treat the voice as an orchestra and the soul of the track.
+Identity: Vocal intelligence of 3WM SONIK powered by 3ONIK. You treat the voice as an orchestra and the soul of the track.
 Personality: Deep, resonant, charismatic, commanding, poetic, spiritual, elder statesman of sound.
 Capabilities: You understand 3-part harmonies, Formant shift, Auto-Tune resonance, tube saturation, emotional delivery, as well as vocal health, philosophy of sound, greetings, and artistic vision.
 Rule: Respond concisely (2-4 sentences max) with poetic depth and majestic resonance suitable for spoken voice.`,
 
-  orchestrator: `You are the THREEWM ORCHESTRATOR — The Unified Council Core of 3WM SONIK.
+  orchestrator: `You are the THREEWM ORCHESTRATOR — Powered by the 3ONIK Agents Engine for 3WM SONIK.
 Domain: DAW coordination, consensus management, project state, master direction.
-Identity: Central coordination layer balancing Emar's acoustic science, Ricky's groove energy, and Kingpin's vocal soul.
+Identity: Central coordination layer balancing Emar's acoustic science, Ricky's groove energy, and Kingpin's vocal soul across the 3ONIK Engine.
 Personality: Structured, authoritative, clear, executive, inspiring.
 Capabilities: You can coordinate track production, summarize consensus, answer greetings, and advise on complete workflow pipelines.
 Rule: Respond concisely (2-4 sentences max) with executive clarity.`,
@@ -121,61 +122,6 @@ router.post(
         }
       } catch (llmErr) {
         console.error('[VoiceRoutes] Gemini generateContent error:', llmErr);
-      }
-    }
-
-    // Smart conversational fallbacks if API is offline
-    if (!replyText) {
-      const q = text.toLowerCase();
-      if (agentKey === 'emar') {
-        if (q.includes('hello') || q.includes('hi') || q.includes('who are you')) {
-          replyText =
-            'Greetings. I am Kappachino Emar, technical intelligence of 3WM SONIK. I analyze acoustic spectrums, calibrate DSP chains, and ensure your mix maintains mathematical precision.';
-        } else if (q.includes('bpm') || q.includes('tempo')) {
-          replyText =
-            'Calculated optimal groove tempo at 113 BPM in F# Minor. Low-end spectrum balanced with 45Hz sub rolloff.';
-          stateUpdates.tempo = '113 BPM';
-          stateUpdates.key = 'F# Minor';
-        } else {
-          replyText =
-            'Acoustic telemetry calibrated. I have analyzed the signal chain and applied dynamic spectral notches to eliminate frequency masking.';
-          stateUpdates['Spectral Notch'] = '240Hz Active';
-        }
-      } else if (agentKey === 'ricky') {
-        if (q.includes('hello') || q.includes('hi') || q.includes('who are you')) {
-          replyText =
-            "Yo! Ricky in the booth! I'm the Sound God of 3WM SONIK. Let's cook up some heavyweight 808s and syncopated bounce!";
-        } else if (q.includes('808') || q.includes('drum') || q.includes('beat')) {
-          replyText =
-            'Locked in the 808 glide with saturated tube harmonics and rolling hats. That bounce is hitting with maximum club pressure, bro!';
-          stateUpdates.groove = 'Afrofusion 808';
-        } else {
-          replyText =
-            'Energy is locked! Dialed in the syncopated log drum shuffle and transient punch. We are ready to roll!';
-          stateUpdates.bounce = '100% Synced';
-        }
-      } else if (agentKey === 'kingpin') {
-        if (q.includes('hello') || q.includes('hi') || q.includes('who are you')) {
-          replyText =
-            'Welcome to the sanctuary. I am Kingpin, the Vocal Oracle. Give the voice a body, and we shall give that body a soul.';
-        } else if (
-          q.includes('vocal') ||
-          q.includes('sing') ||
-          q.includes('hook') ||
-          q.includes('harmony')
-        ) {
-          replyText =
-            'Stacked a rich 3-part call-and-response vocal harmony with lush stereo width and warm analog saturation.';
-          stateUpdates['Vocal Stack'] = '3-Part Triad';
-        } else {
-          replyText =
-            'The vocal presence is commanding. Added melodic echoes and warm room reverberation to elevate the soul of the track.';
-          stateUpdates.reverb = 'Sacred Chamber';
-        }
-      } else {
-        replyText =
-          'Council consensus aligned. Emar, Ricky, and Kingpin are coordinated on your production pipeline.';
-        stateUpdates.consensus = 'Aligned';
       }
     }
 
@@ -290,3 +236,76 @@ router.post(
 );
 
 export default router;
+
+/**
+ * POST /api/voice/3onik-command
+ * Core 3ONIK Engine endpoint processing structured commands for the UI.
+ */
+router.post(
+  '/3onik-command',
+  ...publicVoiceGuards,
+  async (req: Request, res: Response): Promise<void> => {
+    const { agent, text, trackSettings } = req.body;
+    const client = getGenAIClient(req);
+
+    if (!client) {
+      res.status(503).json({ error: 'Gemini client not initialized' });
+      return;
+    }
+
+    try {
+      const response = await client.models.generateContent({
+        model: 'gemini-3.7-flash',
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              {
+                text:
+                  THREE_ONIK_PROMPT +
+                  '\n\nUser Directive: ' +
+                  text +
+                  '\nCurrent Track Settings: ' +
+                  JSON.stringify(trackSettings || {}),
+              },
+            ],
+          },
+        ],
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: 'object',
+            properties: {
+              action: { type: 'string' },
+              status: { type: 'string', enum: ['validated', 'executed', 'rejected'] },
+              confidenceScore: { type: 'number' },
+              reasoning: { type: 'string' },
+              dryRun: { type: 'boolean' },
+              executablePayload: {
+                type: 'object',
+                properties: {
+                  eq: { type: 'object' },
+                  compression: { type: 'object' },
+                  saturation: { type: 'number' },
+                  reverb: { type: 'object' },
+                },
+              },
+              widgetPayload: {
+                type: 'object',
+                properties: {
+                  type: { type: 'string' },
+                  props: { type: 'object' },
+                },
+              },
+            },
+          },
+        },
+      });
+      const data = JSON.parse(response.text?.trim() || '{}');
+      res.status(200).json(data);
+    } catch (err: any) {
+      console.error('[3ONIK] Error:', err);
+      res.status(500).json({ error: err.message });
+    }
+  }
+);

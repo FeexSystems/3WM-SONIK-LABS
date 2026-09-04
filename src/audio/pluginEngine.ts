@@ -1705,6 +1705,8 @@ class Voice808 {
     this.gain.connect(dest);
 
     this.gain.gain.value = 0;
+    (this.osc as any).__persistent = true;
+    (this.subOsc as any).__persistent = true;
     this.osc.start(0);
     this.subOsc.start(0);
   }
@@ -1854,11 +1856,16 @@ export class Sonik808Synthesizer {
     const stopTime = now + durationSec;
     gain.gain.setValueAtTime(0.6 * sustain * velFactor, stopTime);
     gain.gain.exponentialRampToValueAtTime(0.0001, stopTime + release);
+    // Explicitly clamp to true 0 to eliminate any background hum, continuous oscillator bleed, or compressor amplification
+    gain.gain.setValueAtTime(0, stopTime + release + 0.005);
 
     // Deactivate voice in future
     setTimeout(
       () => {
         if (voice && this.ctx && this.ctx.currentTime >= stopTime + release) {
+          try {
+            voice.gain.gain.setValueAtTime(0, this.ctx.currentTime);
+          } catch (e) {}
           voice.active = false;
         }
       },
@@ -1867,6 +1874,19 @@ export class Sonik808Synthesizer {
 
     this.lastPitch = targetPitch;
     this.lastNoteTime = now;
+  }
+
+  public stopAll() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    this.voices.forEach((voice) => {
+      try {
+        voice.gain.gain.cancelScheduledValues(now);
+        voice.gain.gain.setValueAtTime(0, now);
+        voice.active = false;
+      } catch (e) {}
+    });
+    this.resetGlide();
   }
 }
 

@@ -1,7 +1,7 @@
 import { Pinecone } from '@pinecone-database/pinecone';
 
 // Test Pinecone integration
-const apiKey = 'pcsk_1CCB9_U9FymawZXFVzJhosoK6TPzEbjeWYQyphGxCwy8JgWnpMDThH4iz8zsZyWPLq4fX';
+const apiKey = process.env.PINECONE_API_KEY || '';
 
 const pinecone = new Pinecone({
   apiKey: apiKey,

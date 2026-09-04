@@ -16,7 +16,7 @@
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-pinecone"],
       "env": {
-        "PINECONE_API_KEY": "pcsk_1CCB9_U9FymawZXFVzJhosoK6TPzEbjeWYQyphGxCwy8JgWnpMDThH4iz8zsZyWPLq4fX"
+        "PINECONE_API_KEY": "${PINECONE_API_KEY}"
       }
     },
     "firebase": {

@@ -1,3 +1,4 @@
+import { LiveAudioAgent } from './components/agents/LiveAudioAgent';
 import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { Music, Loader2 } from 'lucide-react';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -145,6 +146,38 @@ const initialWorkspace: Workspace = {
   },
 };
 
+
+const fallbackTrack: Track = {
+  id: 'master-session',
+  title: 'Master Studio Session',
+  artist: '3WM Producer',
+  genre: 'Afrofusion',
+  bpm: 120,
+  key: 'C Min',
+  duration: 180,
+  createdAt: new Date().toISOString(),
+  status: 'PRODUCTION',
+  settings: {
+    volume: 0.8,
+    pan: 0,
+    mute: false,
+    solo: false,
+    eq: { low: 0, mid: 0, high: 0 },
+    compression: { threshold: -18, ratio: 4, attack: 15, release: 200, makeupGain: 0 },
+    reverb: { type: 'warm_room', amount: 0.25, decay: 1.5 },
+    mastering: {
+      preset: 'Afrofusion Warmth',
+      limiterCeiling: -0.1,
+      targetLufs: -14,
+      warmthSaturation: 0.2,
+      stereoWidth: 1.0,
+    },
+    saturation: 0,
+  },
+  stems: [],
+  history: [],
+};
+
 const AppContent: React.FC = () => {
   const { user: authUser, profile, openAuthModal, signOutUser } = useAuth();
 
@@ -159,6 +192,7 @@ const AppContent: React.FC = () => {
   const [isPluginRackOpen, setIsPluginRackOpen] = useState<boolean>(false);
   const [pluginRackInitialId, setPluginRackInitialId] = useState<string>('808-lab');
   const [isMidiModalOpen, setIsMidiModalOpen] = useState<boolean>(false);
+  const [isLiveAgentOpen, setIsLiveAgentOpen] = useState<boolean>(false);
   const [isDiagModalOpen, setIsDiagModalOpen] = useState<boolean>(false);
   const [isAgentPanelOpen, setIsAgentPanelOpen] = useState<boolean>(true);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
@@ -168,6 +202,7 @@ const AppContent: React.FC = () => {
   const [workspace, setWorkspace] = useState<Workspace>(initialWorkspace);
   const [themeMode, setThemeMode] = useState<StudioThemeMode>(() => themeManager.getActiveMode());
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
 
   // Sync profile when authenticated user changes
   useEffect(() => {
@@ -293,12 +328,13 @@ const AppContent: React.FC = () => {
   };
 
   const handleUpdateTrackSettings = (
-    settingsPatch: Partial<TrackSettings>,
+    settingsPatch: Partial<TrackSettings> & { bpm?: number },
     stems?: StemTrack[]
   ) => {
     if (!currentTrack) return;
     const updated: Track = {
       ...currentTrack,
+      bpm: typeof (settingsPatch as any).bpm === 'number' ? (settingsPatch as any).bpm : currentTrack.bpm,
       settings: {
         ...currentTrack.settings,
         ...settingsPatch,
@@ -308,6 +344,8 @@ const AppContent: React.FC = () => {
       },
       stems: stems ?? currentTrack.stems,
     };
+    setCurrentTrack(updated);
+    setTracks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
     projectStore.updateProject(updated);
     soundEngine.updateDsp(updated.settings);
   };
@@ -487,18 +525,20 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] flex overflow-hidden selection:bg-amber-500 selection:text-neutral-950 font-sans transition-colors duration-300">
-      {/* 1. Global Navigation Sidebar */}
+      {/* 1. Navigation / Global Architecture */}
       <Sidebar
         currentView={currentView}
-        onNavigate={handleNavigate}
+        onNavigate={setCurrentView}
         workspace={workspace}
         user={user}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
-        isAgentPanelOpen={isAgentPanelOpen}
         onToggleAgentPanel={() => setIsAgentPanelOpen(!isAgentPanelOpen)}
+        isAgentPanelOpen={isAgentPanelOpen}
         onOpenGuide={() => setIsGuideOpen(true)}
         isMobileOpen={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         onSignOut={async () => {
           await signOutUser();
           setInLandingMode(true);
@@ -661,10 +701,10 @@ const AppContent: React.FC = () => {
                   />
                 </Suspense>
               )}
-              {currentView === 'ai_sonic' && currentTrack && (
+              {currentView === 'ai_sonic' && (
                 <Suspense fallback={<ViewLoader />}>
                   <LazyAiOracleView
-                    track={currentTrack}
+                    track={currentTrack || fallbackTrack}
                     onApplySettings={handleUpdateTrackSettings}
                   />
                 </Suspense>
@@ -830,6 +870,37 @@ const AppContent: React.FC = () => {
           }}
         />
       )}
+
+
+      {/* Global Floating Live Audio Agent Uplink Pill */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+        {isLiveAgentOpen && (
+          <div className="mb-3 w-96 rounded-2xl border border-neutral-800 bg-neutral-950/95 p-4 shadow-2xl backdrop-blur-xl animate-in slide-in-from-bottom-5 duration-200">
+            <div className="flex items-center justify-between pb-3 mb-2 border-b border-neutral-850">
+              <div className="flex items-center gap-2">
+                <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs font-mono font-bold tracking-wider text-neutral-200 uppercase">
+                  Gemini Live Agent
+                </span>
+              </div>
+              <button
+                onClick={() => setIsLiveAgentOpen(false)}
+                className="text-neutral-400 hover:text-white text-xs font-mono px-2 py-0.5 rounded bg-neutral-900 border border-neutral-800"
+              >
+                ✕
+              </button>
+            </div>
+            <LiveAudioAgent />
+          </div>
+        )}
+        <button
+          onClick={() => setIsLiveAgentOpen(!isLiveAgentOpen)}
+          className="flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-black uppercase tracking-wider shadow-2xl transition-all duration-200 bg-gradient-to-r from-emerald-500 to-teal-500 text-neutral-950 hover:brightness-110 shadow-emerald-500/20"
+        >
+          <span className="flex h-2 w-2 rounded-full bg-black animate-pulse" />
+          <span>{isLiveAgentOpen ? 'Close Voice Uplink' : '🎙️ Live Voice Uplink'}</span>
+        </button>
+      </div>
 
       {/* Mobile Bottom Navigation Bar */}
       <MobileBottomNav

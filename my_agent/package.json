@@ -1,0 +1,22 @@
+{
+  "name": "my_agent",
+  "version": "1.0.0",
+  "description": "",
+  "main": "agent.ts",
+  "scripts": {
+    "web": "npx @google/adk-devtools web",
+    "cli": "npx @google/adk-devtools run agent.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@google/adk": "^2.0.0",
+    "@google/adk-devtools": "^2.0.0",
+    "dotenv": "^17.4.2",
+    "zod": "^4.5.4"
+  }
+}

@@ -67,9 +67,13 @@ export const TransportBar: React.FC<TransportBarProps> = ({
   onUpdateTrackSettings,
 }) => {
   const [bpm, setBpm] = useState(currentTrack?.bpm || 112);
+  const [bpmInput, setBpmInput] = useState(String(currentTrack?.bpm || 112));
   const [isLooping, setIsLooping] = useState(true);
   const [masterVolume, setMasterVolume] = useState(currentTrack?.settings?.volume || 0.85);
   const [localStep, setLocalStep] = useState(0);
+  const [showBpmMenu, setShowBpmMenu] = useState(false);
+  const [tapFlash, setTapFlash] = useState(false);
+  const tapTimesRef = React.useRef<number[]>([]);
 
   useEffect(() => {
     return transportBridge.subscribe('STEP_TICK', (state) => {
@@ -97,18 +101,46 @@ export const TransportBar: React.FC<TransportBarProps> = ({
   }, []);
 
   useEffect(() => {
-    if (currentTrack) {
+    if (currentTrack?.bpm) {
       setBpm(currentTrack.bpm);
-      setMasterVolume(currentTrack.settings?.volume || 0.85);
+      setBpmInput(String(currentTrack.bpm));
     }
-  }, [currentTrack]);
+    if (currentTrack?.settings?.volume !== undefined) {
+      setMasterVolume(currentTrack.settings.volume);
+    }
+  }, [currentTrack?.bpm, currentTrack?.settings?.volume]);
 
-  const handleBpmChange = (newVal: number) => {
-    const val = Math.max(60, Math.min(200, newVal));
+  const handleBpmCommit = (rawVal: number) => {
+    const val = Math.max(40, Math.min(240, Math.round(rawVal)));
     setBpm(val);
+    setBpmInput(String(val));
     soundEngine.setBpm(val);
     if (currentTrack && onUpdateTrackSettings) {
       onUpdateTrackSettings({ ...currentTrack.settings, bpm: val });
+    }
+  };
+
+  const handleTapTempo = () => {
+    const now = Date.now();
+    const recentTaps = tapTimesRef.current.filter((t) => now - t < 3000);
+    recentTaps.push(now);
+    tapTimesRef.current = recentTaps;
+
+    setTapFlash(true);
+    setTimeout(() => setTapFlash(false), 150);
+
+    if (recentTaps.length >= 2) {
+      const deltas: number[] = [];
+      for (let i = 1; i < recentTaps.length; i++) {
+        deltas.push(recentTaps[i] - recentTaps[i - 1]);
+      }
+      const avgMs = deltas.reduce((a, b) => a + b, 0) / deltas.length;
+      if (avgMs > 0) {
+        const calculatedBpm = Math.round(60000 / avgMs);
+        if (calculatedBpm >= 40 && calculatedBpm <= 240) {
+          handleBpmCommit(calculatedBpm);
+        }
+      }
     }
   };
 
@@ -248,31 +280,101 @@ export const TransportBar: React.FC<TransportBarProps> = ({
           </button>
         </div>
 
-        {/* BPM Input */}
-        <div className="flex items-center bg-neutral-950 px-2 py-1 rounded-xl border border-neutral-800 gap-1">
-          <span className="text-[10px] font-mono text-neutral-500 font-bold mr-1">BPM</span>
+        {/* BPM Input & Tap Tempo */}
+        <div className="relative flex items-center bg-neutral-950 px-2 py-1 rounded-xl border border-neutral-800 gap-1">
           <button
-            onClick={() => handleBpmChange(bpm - 1)}
+            onClick={() => setShowBpmMenu(!showBpmMenu)}
+            className="text-[10px] font-mono text-neutral-400 font-bold hover:text-amber-400 transition cursor-pointer select-none px-1 rounded hover:bg-neutral-800"
+            title="Genre Tempo Presets"
+          >
+            BPM
+          </button>
+          <button
+            onClick={() => handleBpmCommit(bpm - 1)}
             className="p-0.5 rounded text-neutral-500 hover:text-amber-400 hover:bg-neutral-800 transition"
-            title="Decrease Tempo"
+            title="Decrease Tempo (-1)"
           >
             <Minus className="w-3 h-3" />
           </button>
           <input
-            type="number"
-            value={bpm}
-            min={40}
-            max={300}
-            onChange={(e) => handleBpmChange(parseInt(e.target.value) || 112)}
-            className="w-8 sm:w-9 bg-transparent text-xs font-bold font-mono text-amber-400 text-center focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={bpmInput}
+            onChange={(e) => {
+              const val = e.target.value.replace(/[^0-9]/g, '');
+              setBpmInput(val);
+              const parsed = parseInt(val, 10);
+              if (!isNaN(parsed) && parsed >= 40 && parsed <= 240) {
+                handleBpmCommit(parsed);
+              }
+            }}
+            onBlur={() => {
+              const parsed = parseInt(bpmInput, 10);
+              handleBpmCommit(isNaN(parsed) ? bpm : parsed);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                const parsed = parseInt(bpmInput, 10);
+                handleBpmCommit(isNaN(parsed) ? bpm : parsed);
+                (e.target as HTMLInputElement).blur();
+              }
+            }}
+            className="w-9 bg-transparent text-xs font-bold font-mono text-amber-400 text-center focus:outline-none focus:bg-neutral-900 rounded px-0.5"
+            title="Double-click or type to edit BPM"
           />
           <button
-            onClick={() => handleBpmChange(bpm + 1)}
+            onClick={() => handleBpmCommit(bpm + 1)}
             className="p-0.5 rounded text-neutral-500 hover:text-amber-400 hover:bg-neutral-800 transition"
-            title="Increase Tempo"
+            title="Increase Tempo (+1)"
           >
             <Plus className="w-3 h-3" />
           </button>
+
+          {/* Tap Tempo Button */}
+          <button
+            onClick={handleTapTempo}
+            className={`px-1.5 py-0.5 ml-0.5 text-[9px] font-mono font-bold rounded transition tracking-wider ${
+              tapFlash
+                ? 'bg-amber-400 text-neutral-950 shadow-sm shadow-amber-400/50 scale-105'
+                : 'bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-amber-400 border border-neutral-800'
+            }`}
+            title="Tap repeatedly in rhythm to set BPM"
+          >
+            TAP
+          </button>
+
+          {/* Quick BPM Genre Presets Dropdown */}
+          {showBpmMenu && (
+            <div className="absolute bottom-full mb-2 left-0 w-44 bg-neutral-950 border border-neutral-800 rounded-xl shadow-2xl p-2 z-50 text-left">
+              <div className="text-[9px] font-mono text-neutral-500 uppercase px-2 py-1 tracking-wider border-b border-neutral-900 mb-1">
+                Tempo Presets
+              </div>
+              {[
+                { label: 'Afrobeat Warmth', value: 100 },
+                { label: 'Amapiano Groove', value: 112 },
+                { label: 'Afropop / Dance', value: 120 },
+                { label: 'UK / NY Drill', value: 140 },
+                { label: 'Trap Bounce', value: 150 },
+              ].map((p) => (
+                <button
+                  key={p.value}
+                  onClick={() => {
+                    handleBpmCommit(p.value);
+                    setShowBpmMenu(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs font-mono transition ${
+                    bpm === p.value
+                      ? 'bg-amber-400/10 text-amber-400 font-bold'
+                      : 'hover:bg-neutral-900 text-neutral-300'
+                  }`}
+                >
+                  <span className="text-[11px] font-sans">{p.label}</span>
+                  <span className="font-bold text-amber-400">{p.value}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

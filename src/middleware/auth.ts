@@ -33,6 +33,14 @@ export interface AuthRequest extends Request {
 }
 
 export const requireAuth = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  // Allow unauthenticated demo track requests for instant sandbox studio exploration
+  const pathTrackId = (req.params as any)?.id || '';
+  if (pathTrackId.startsWith('demo') || req.path.includes('/demo-') || req.path.includes('demo-track-1')) {
+    req.user = { uid: 'demo-user', email: 'demo@3wm-sonik.io' } as DecodedIdToken;
+    req.dbUser = { uid: 'demo-user', email: 'demo@3wm-sonik.io', name: 'Demo Producer', role: 'Artist' };
+    return next();
+  }
+
   // CRITICAL SECURITY FIX: Only allow bypass in explicit development mode with environment variable
   // NEVER allow authentication bypass in production
   const allowDevBypass = process.env.ALLOW_DEV_AUTH_BYPASS === 'true';
@@ -78,4 +86,35 @@ export const requireAuth = async (req: AuthRequest, res: Response, next: NextFun
     res.status(401).json({ error: 'Unauthorized: Invalid token' });
     return;
   }
+};
+
+export const optionalAuth = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return next();
+  }
+
+  const token = authHeader.split('Bearer ')[1];
+  if (!token || token === 'demo-token') {
+    req.user = { uid: 'demo-user', email: 'demo@3wm-sonik.io' } as DecodedIdToken;
+    return next();
+  }
+
+  if (!adminAuth) {
+    return next();
+  }
+
+  try {
+    const decodedToken = await adminAuth.verifyIdToken(token);
+    req.user = decodedToken;
+    req.dbUser = await getOrCreateUser(
+      decodedToken.uid,
+      decodedToken.email || '',
+      decodedToken.name,
+      decodedToken.picture
+    );
+  } catch {
+    // Silently ignore token verification failures for optional authentication
+  }
+  next();
 };

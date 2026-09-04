@@ -1,0 +1,12 @@
+node_modules
+dist
+.env
+env.yaml
+.git
+.github
+.temp
+.vs
+tsc.log
+playwright-report
+test-results
+coverage

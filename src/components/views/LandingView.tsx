@@ -15,11 +15,14 @@ import { Telemetry } from '../sections/Telemetry';
 import { AudioShowcase } from '../sections/AudioShowcase';
 import { VisualShowcase } from '../sections/VisualShowcase';
 import { StudioGallery } from '../sections/StudioGallery';
+import { CinematicStudioTour } from '../sections/CinematicStudioTour';
 import { Testimonials } from '../sections/Testimonials';
 import { Pricing } from '../sections/Pricing';
 import { FAQ } from '../sections/FAQ';
 import { Footer } from '../sections/Footer';
 import { ScrollProgress } from '../sections/ScrollProgress';
+import { ScrollRevealGallery } from '../sections/ScrollRevealGallery';
+import { ScrollReveal } from '../ui/scroll-reveal';
 import { Button } from '../ui/button';
 import { Waveform } from '../visuals/Waveform';
 import { WaitlistForm } from '../sections/WaitlistForm';
@@ -157,53 +160,107 @@ export const LandingView: React.FC<LandingViewProps> = ({ onEnterStudio, onExplo
             </motion.div>
           </div>
 
-          {/* Anatomy: Use cases → Pain Points → Why us → How it works */}
-          <UseCases />
-          <PainPoints />
-          <WhyUs />
+          <ScrollReveal>
+            <UseCases />
+          </ScrollReveal>
+          <ScrollReveal>
+            <PainPoints />
+          </ScrollReveal>
+          <ScrollReveal>
+            <WhyUs />
+          </ScrollReveal>
 
-          <Telemetry />
-          <Council />
-          <AudioShowcase />
-          <VisualShowcase />
-          <StudioGallery />
-          <Capabilities />
-          <Workflow />
-          <Pricing onSelectPlan={() => onEnterStudio()} />
-          <Testimonials />
-          <CTV onEnterStudio={() => onEnterStudio()} />
-          <FAQ />
-          <TalkToTheThree onEnterStudio={onEnterStudio} />
+          <ScrollReveal>
+            <Telemetry />
+          </ScrollReveal>
+          <ScrollReveal>
+            <Council />
+          </ScrollReveal>
+          <ScrollReveal>
+            <AudioShowcase />
+          </ScrollReveal>
+          <ScrollReveal>
+            <VisualShowcase />
+          </ScrollReveal>
 
-          <section
-            id="early-access"
-            className="relative overflow-hidden px-5 py-32 text-center md:px-14"
-          >
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_60%_at_50%_50%,rgba(245,168,0,.07),transparent_70%)]" />
-            <span className="relative text-5xl drop-shadow-[0_0_16px_rgba(245,168,0,.4)]">🔱</span>
-            <h2 className="relative mt-6 font-display text-7xl leading-[.85] text-[var(--foreground-bright)] md:text-[120px]">
-              YOUR STUDIO.
-              <br />
-              <span className="text-[#f5a800]">YOUR</span>
-              <span className="text-[#ff3c00]"> COUNCIL.</span>
-            </h2>
-            <p className="relative mx-auto mt-7 max-w-xl text-base font-light leading-7 text-[var(--foreground-muted)]/80">
-              3WM SONIK is currently accepting priority beta producers. Request your early access
-              pass below — producers building in Afrobeats, Amapiano, Hip-Hop, and R&B receive
-              priority batch approval.
-            </p>
+          <ScrollReveal>
+            <section className="relative w-full py-24 bg-[var(--background)] overflow-hidden">
+              <div className="text-center mb-16 px-4">
+                <span className="text-[#f5a800] font-mono text-sm tracking-widest uppercase mb-4 block">
+                  Immersive Experience
+                </span>
+                <h2 className="text-4xl md:text-5xl font-display text-[var(--foreground-bright)] tracking-wide">
+                  STEP INTO{' '}
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-amber-200">
+                    THE LAB
+                  </span>
+                </h2>
+              </div>
+              <ScrollRevealGallery />
+            </section>
+          </ScrollReveal>
 
-            {/* Embedded Interactive Beta Access Form */}
-            <div className="relative mx-auto mt-10 max-w-xl rounded-2xl border border-white/10 bg-black/60 backdrop-blur-xl p-6 sm:p-8 shadow-2xl">
-              <WaitlistForm isDetailed={true} source="landing-cta" />
-            </div>
+          <ScrollReveal>
+            <CinematicStudioTour />
+          </ScrollReveal>
+          <ScrollReveal>
+            <StudioGallery />
+          </ScrollReveal>
+          <ScrollReveal>
+            <Capabilities />
+          </ScrollReveal>
+          <ScrollReveal>
+            <Workflow />
+          </ScrollReveal>
+          <ScrollReveal>
+            <Pricing onSelectPlan={() => onEnterStudio()} />
+          </ScrollReveal>
+          <ScrollReveal>
+            <Testimonials />
+          </ScrollReveal>
+          <ScrollReveal>
+            <CTV onEnterStudio={() => onEnterStudio()} />
+          </ScrollReveal>
+          <ScrollReveal>
+            <FAQ />
+          </ScrollReveal>
+          <ScrollReveal>
+            <TalkToTheThree onEnterStudio={onEnterStudio} />
+          </ScrollReveal>
 
-            <div className="relative mt-8 flex justify-center gap-4">
-              <Button variant="ghost" onClick={onExploreSonic}>
-                Enter Artist World 3D
-              </Button>
-            </div>
-          </section>
+          <ScrollReveal>
+            <section
+              id="early-access"
+              className="relative overflow-hidden px-5 py-32 text-center md:px-14"
+            >
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_60%_at_50%_50%,rgba(245,168,0,.07),transparent_70%)]" />
+              <span className="relative text-5xl drop-shadow-[0_0_16px_rgba(245,168,0,.4)]">
+                🔱
+              </span>
+              <h2 className="relative mt-6 font-display text-7xl leading-[.85] text-[var(--foreground-bright)] md:text-[120px]">
+                YOUR STUDIO.
+                <br />
+                <span className="text-[#f5a800]">YOUR</span>
+                <span className="text-[#ff3c00]"> COUNCIL.</span>
+              </h2>
+              <p className="relative mx-auto mt-7 max-w-xl text-base font-light leading-7 text-[var(--foreground-muted)]/80">
+                3WM SONIK is currently accepting priority beta producers. Request your early access
+                pass below — producers building in Afrobeats, Amapiano, Hip-Hop, and R&B receive
+                priority batch approval.
+              </p>
+
+              {/* Embedded Interactive Beta Access Form */}
+              <div className="relative mx-auto mt-10 max-w-xl rounded-2xl border border-white/10 bg-black/60 backdrop-blur-xl p-6 sm:p-8 shadow-2xl">
+                <WaitlistForm isDetailed={true} source="landing-cta" />
+              </div>
+
+              <div className="relative mt-8 flex justify-center gap-4">
+                <Button variant="ghost" onClick={onExploreSonic}>
+                  Enter Artist World 3D
+                </Button>
+              </div>
+            </section>
+          </ScrollReveal>
         </main>
 
         <Footer />

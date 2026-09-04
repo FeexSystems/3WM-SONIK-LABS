@@ -1,3 +1,4 @@
+import { LiveAudioAgent } from './LiveAudioAgent';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -80,6 +81,7 @@ export const VoiceAgentModal: React.FC<VoiceAgentModalProps> = ({
   onEnterStudio,
 }) => {
   const [activeAgent, setActiveAgent] = useState<AgentId>(initialAgent);
+  const [mode, setMode] = useState<'standard' | 'live'>('live');
   const [voiceState, setVoiceState] = useState<VoiceState>('IDLE');
   const [audioLevel, setAudioLevel] = useState<number>(0);
   const [transcription, setTranscription] = useState<string>('');
@@ -176,6 +178,32 @@ export const VoiceAgentModal: React.FC<VoiceAgentModalProps> = ({
           {/* Header */}
           <div className="flex items-center justify-between border-b border-white/10 bg-[#181410] px-6 py-4">
             <div className="flex items-center gap-3">
+              {/* Live Audio Mode Switcher */}
+              <div className="flex items-center rounded-xl bg-black/60 p-1 border border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setMode('live')}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-mono font-bold transition-all ${
+                    mode === 'live'
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      : 'text-[#C9C9D4]/50 hover:text-white'
+                  }`}
+                >
+                  <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>Gemini Live (Connect Live)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode('standard')}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-mono font-bold transition-all ${
+                    mode === 'standard'
+                      ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                      : 'text-[#C9C9D4]/50 hover:text-white'
+                  }`}
+                >
+                  <span>Standard Voice</span>
+                </button>
+              </div>
               <div
                 className="flex h-10 w-10 items-center justify-center rounded-2xl border text-xl shadow-lg transition-colors"
                 style={{

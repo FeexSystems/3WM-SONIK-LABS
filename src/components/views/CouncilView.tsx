@@ -1,3 +1,4 @@
+import { LiveAudioAgent } from '../agents/LiveAudioAgent';
 import React, { useState, useEffect } from 'react';
 import { AgentOrb, AgentState } from '../ui/AgentOrb';
 import { CouncilMode, CouncilMessage, CouncilSession } from '../../agents/councilMode';
@@ -156,6 +157,22 @@ export const CouncilView: React.FC<CouncilViewProps> = ({ council, onDecision })
           />
           <AgentOrb id="kingpin" name="Kingpin" color="#ec4899" state={kingpinState} size="lg" />
         </div>
+      </div>
+
+      {/* Live Voice Uplink (Gemini Live Bidirectional Agent) */}
+      <div className="bg-neutral-900/80 border border-neutral-800/80 rounded-3xl p-6 shadow-2xl backdrop-blur-md">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-neutral-800">
+          <div className="flex items-center gap-2">
+            <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
+            <h3 className="text-xs font-mono font-bold tracking-widest text-neutral-300 uppercase">
+              Bidirectional Voice Uplink (Gemini Live Stream)
+            </h3>
+          </div>
+          <span className="text-[10px] font-mono text-neutral-500 uppercase">
+            3ONIK Acoustic Node v2.2
+          </span>
+        </div>
+        <LiveAudioAgent />
       </div>
 
       {/* Live Transcript Log */}

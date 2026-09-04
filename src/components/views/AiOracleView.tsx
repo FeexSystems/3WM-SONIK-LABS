@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Track, AiCommandResult, TrackSettings } from '../../types';
 import { soundEngine } from '../../audio/engine';
+import { LiveAudioAgent } from '../agents/LiveAudioAgent';
+
 import {
   Sparkles,
   Cpu,
@@ -86,113 +88,70 @@ export const AiOracleView: React.FC<AiOracleViewProps> = ({ track, onApplySettin
 
   const activeAgent = agents.find((a) => a.id === activeAgentId) || agents[0];
 
-  const handleExecutePrompt = (customPrompt?: string) => {
+    const handleExecutePrompt = async (customPrompt?: string) => {
     const text = customPrompt || promptInput;
     if (!text.trim()) return;
 
     setIsProcessing(true);
 
-    setTimeout(() => {
-      let targetEq = { ...track.settings.eq };
-      let targetComp = { ...track.settings.compression };
-      let targetReverb = { ...track.settings.reverb };
-      let targetSat = track.settings.saturation;
-      let reason = '';
-      let widgetPayload: GenerativeWidgetPayload | null = null;
+    try {
+      const res = await fetch('/api/voice/3onik-command', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agent: activeAgentId,
+          text,
+          trackSettings: track.settings
+        })
+      });
 
-      const lower = text.toLowerCase();
+      if (res.ok) {
+        const data = await res.json();
+        
+        let targetEq = { ...track.settings.eq };
+        let targetComp = { ...track.settings.compression };
+        let targetReverb = { ...track.settings.reverb };
+        let targetSat = track.settings.saturation;
 
-      if (
-        activeAgentId === 'emar' ||
-        lower.includes('eq') ||
-        lower.includes('filter') ||
-        lower.includes('acoustic')
-      ) {
-        targetEq.low = 3.5;
-        targetEq.mid = -1.5;
-        targetEq.high = 2.0;
-        targetSat = 0.35;
-        reason =
-          'Emar calibrated a 5-band surgical notch curve at 220Hz (-3dB) to remove boxy mud while opening 12kHz air shimmer (+2.0dB).';
-        widgetPayload = {
-          type: 'emar_spectrum',
-          props: { targetHz: 220, gainDb: -3.0 },
+        if (data.executablePayload) {
+          if (data.executablePayload.eq) targetEq = { ...targetEq, ...data.executablePayload.eq };
+          if (data.executablePayload.compression) targetComp = { ...targetComp, ...data.executablePayload.compression };
+          if (data.executablePayload.reverb) targetReverb = { ...targetReverb, ...data.executablePayload.reverb };
+          if (typeof data.executablePayload.saturation === 'number') targetSat = data.executablePayload.saturation;
+        }
+
+        const generatedResult: AiCommandResult = {
+          action: data.action || 'UPDATE_DSP_PARAMETERS',
+          status: data.status || 'validated',
+          confidenceScore: data.confidenceScore || 0.96,
+          reasoning: data.reasoning || 'Action validated.',
+          dryRun: dryRunMode,
+          executablePayload: {
+            eq: targetEq,
+            compression: targetComp,
+            saturation: targetSat,
+            reverb: targetReverb,
+          },
+          widgetPayload: data.widgetPayload || null,
         };
-      } else if (
-        activeAgentId === 'ricky' ||
-        lower.includes('log drum') ||
-        lower.includes('808') ||
-        lower.includes('bounce') ||
-        lower.includes('drum')
-      ) {
-        targetEq.low = 4.2;
-        targetComp.ratio = 4.5;
-        targetComp.attack = 20;
-        targetSat = 0.65;
-        reason =
-          'Ricky synthesized a syncopated 16-step Amapiano log drum groove at 58% swing with warm non-linear sub saturation.';
-        widgetPayload = {
-          type: 'ricky_bounce',
-          props: { tempoBpm: track.bpm || 112, presetName: 'Lagos Mid-Tempo Log Bounce' },
-        };
-      } else if (
-        activeAgentId === 'kingpin' ||
-        lower.includes('vocal') ||
-        lower.includes('harmony') ||
-        lower.includes('tune')
-      ) {
-        targetEq.high = 3.0;
-        targetReverb.amount = 30;
-        targetReverb.decay = 2.4;
-        targetSat = 0.4;
-        reason =
-          'Kingpin stacked a 3-part modal harmony (+3rd High, -5th Low Soul Bass) locked to F# Minor with 12ms pitch retune.';
-        widgetPayload = {
-          type: 'kingpin_vocal',
-          props: { scaleKey: 'F# Minor', initialSpeed: 12 },
-        };
-      } else if (
-        activeAgentId === 'bigquery' ||
-        lower.includes('forecast') ||
-        lower.includes('analytics') ||
-        lower.includes('hit')
-      ) {
-        reason =
-          'BigQuery ML AI.FORECAST projected 3.2M streams within 12 weeks with 92.4% timbral similarity to top Afrofusion streaming anchors.';
-        widgetPayload = {
-          type: 'bigquery_forecast',
-          props: { genre: track.genre || 'Afro-Amapiano Fusion', hitScore: 94 },
-        };
+
+        if (data.widgetPayload) {
+          setActiveWidget(data.widgetPayload);
+        }
+
+        setLastResult(generatedResult);
+
+        if (!dryRunMode && onApplySettings) {
+          onApplySettings(generatedResult.executablePayload);
+        }
       } else {
-        targetEq.low = 2.0;
-        targetEq.high = 1.5;
-        targetSat = 0.45;
-        reason = `Calibrated acoustic fingerprint for ${track.genre} (${track.bpm} BPM) across active stems.`;
+        console.error('Error from 3ONIK endpoint');
       }
+    } catch (e) {
+      console.error(e);
+    }
 
-      const generatedResult: AiCommandResult = {
-        action: 'UPDATE_DSP_PARAMETERS',
-        status: 'validated',
-        confidenceScore: 0.96,
-        reasoning: reason,
-        dryRun: dryRunMode,
-        executablePayload: {
-          eq: targetEq,
-          compression: targetComp,
-          reverb: targetReverb,
-          saturation: targetSat,
-        },
-      };
-
-      setLastResult(generatedResult);
-      setActiveWidget(widgetPayload);
-      setIsProcessing(false);
-
-      if (!dryRunMode) {
-        soundEngine.updateDsp({ ...track.settings, ...generatedResult.executablePayload });
-        onApplySettings(generatedResult.executablePayload);
-      }
-    }, 600);
+    setIsProcessing(false);
   };
 
   const handleWidgetApply = (actionType: string, data: any) => {
@@ -439,6 +398,12 @@ export const AiOracleView: React.FC<AiOracleViewProps> = ({ track, onApplySettin
             </div>
           )}
         </div>
+
+        
+          {/* Live Audio Agent Widget */}
+          <div className="mt-4">
+            <LiveAudioAgent />
+          </div>
 
         {/* Generative UI Interactive Widget Stage (Right 7 cols) */}
         <div className="lg:col-span-7 flex flex-col justify-center">

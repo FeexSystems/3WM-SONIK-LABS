@@ -285,6 +285,9 @@ export interface WaveformDisplayData {
 export interface TrackSettings {
   volume: number;
   pan: number;
+  mute?: boolean;
+  muted?: boolean;
+  solo?: boolean;
   saturation?: number;
   eq: {
     low: number; // -12 to +12 dB
@@ -347,10 +350,14 @@ export interface AudioAnalysis {
   warnings?: string[];
   recommendations?: string[];
   agentInsights: {
-    bushBot: string;
-    grok: string;
-    perplexity: string;
+    bushBot?: string;
+    grok?: string;
+    perplexity?: string;
     openAi?: string;
+    emar?: string;
+    ricky?: string;
+    kingpin?: string;
+    orchestrator?: string;
   };
 }
 
@@ -577,6 +584,7 @@ export interface AiCommandResult {
   reasoning: string;
   dryRun: boolean;
   executablePayload: Partial<TrackSettings>;
+  widgetPayload?: any;
 }
 
 export interface MasteringProfile {

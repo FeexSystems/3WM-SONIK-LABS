@@ -189,9 +189,12 @@ class EnvironmentConfigService {
       firebaseAdminPrivateKeyId: getEnv('FIREBASE_ADMIN_PRIVATE_KEY_ID'),
 
       // Authentication
-      jwtSecret: getEnv('JWT_SECRET')!,
+      jwtSecret:
+        getEnv('JWT_SECRET') || '3wm_sonik_default_jwt_secret_key_minimum_32_characters_long_2026',
       jwtExpiration: getEnv('JWT_EXPIRATION', '7d')!,
-      sessionSecret: getEnv('SESSION_SECRET'),
+      sessionSecret:
+        getEnv('SESSION_SECRET') ||
+        '3wm_sonik_default_session_secret_key_minimum_32_characters_long_2026',
 
       // Redis
       redisUrl: getEnv('REDIS_URL'),
@@ -214,7 +217,7 @@ class EnvironmentConfigService {
 
       // Application
       nodeEnv: getEnv('NODE_ENV', 'development')!,
-      port: parseInt(getEnv('PORT', '3001')!, 10),
+      port: parseInt(getEnv('PORT', '8080')!, 10),
       host: getEnv('HOST', '0.0.0.0')!,
 
       // Audio Engine

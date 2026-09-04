@@ -1,17 +1,18 @@
 # 3WM SONIK — MASTER SKILLS HARNESSING & ARCHITECTURAL MEGAPLAN
 
-**"ONE VISION. THREE MINDS. INFINITE SOUND."**
+**"ONE VISION. THREE MINDS. INFINITE SOUND."**  
+**"3ONIK is the brain; 3WM SONIK is the sound."**
 
 ---
 
 ## EXECUTIVE SUMMARY & SYSTEM THESIS
 
-**3WM SONIK** is a high-performance, cinematic, AI-native musical operating workstation and digital audio ecosystem. It is powered by the **Three Wise Men** agent triad:
+**3WM SONIK** is a high-performance, cinematic, AI-native musical operating workstation and digital audio ecosystem powered by the **3ONIK Agents Engine**. 3ONIK is the proprietary multi-agent intelligence and audio reasoning kernel that orchestrates the **Three Wise Men** agent triad:
 
 - 🧪 **Kappachino Emar (The Scientist)** — Emerald/Mint `#2AFFA3` — DSP, Mixing, Mastering, Acoustic Physics & Theory.
 - 🥁 **Kappachino Ricky (The Sound God)** — Gold `#F5A800` — Drums, 808s, Grooves, Sound Design & Timbre.
 - 🎤 **Kingpin (The Vocal Oracle)** — Fire `#FF3C00` — Vocals, Harmonies, Vocal Processing & Emotional Dynamics.
-- 🔱 **ThreeWM Orchestrator** — The central consensus, memory, routing, and world-state sync engine.
+- 🔱 **ThreeWM Orchestrator** — The central consensus, memory, routing, and world-state sync coordinator within 3ONIK.
 
 This **Megaplan** integrates all specialized agent skills across 9 core architectural pillars to scale **3WM SONIK** into an industry-defining standard.
 
@@ -21,6 +22,11 @@ This **Megaplan** integrates all specialized agent skills across 9 core architec
 
 ```
                                  ┌────────────────────────────────────────────────────────┐
+                                 │                  3ONIK AGENTS ENGINE                   │
+                                 │                 (Cognitive AI Kernel)                  │
+                                 └──────────────────────────┬─────────────────────────────┘
+                                                            │
+                                 ┌──────────────────────────▼─────────────────────────────┐
                                  │                 THREEWM ORCHESTRATOR                   │
                                  │   • agentflow / agent-squad / agent-orchestration      │
                                  │   • agent-memory-systems / vector-database-engineer   │

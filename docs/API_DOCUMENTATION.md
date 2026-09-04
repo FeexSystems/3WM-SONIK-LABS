@@ -1,97 +1,259 @@
-# 3WM SONIK API Documentation
+# 🔱 3WM SONIK API Documentation (v3.0)
 
 ## Overview
 
 The 3WM SONIK API provides a comprehensive interface for interacting with the cinematic AI music production platform. This API enables audio track management, AI-powered music production through the Three Wise Men agents, vocal synthesis, project exports, and real-time collaboration.
 
 **Base URL:** `http://localhost:3000` (Development) or `https://3wm-sonik.com` (Production)  
-**API Version:** 1.0.0  
+**API Version:** 3.0.0  
 **Interactive Documentation:** `/api-docs` (Swagger UI)
 
-## Authentication
+---
 
-All API endpoints (except health check) require JWT authentication using the Bearer token scheme.
+## Authentication & Security
 
-### Getting Your Token
-
-1. **Register** at `/api/auth/register` to create an account
-2. **Login** at `/api/auth/login` to receive your JWT token
-3. Include the token in the `Authorization` header:
-
-```http
-Authorization: Bearer <your-jwt-token>
-```
+All API endpoints (except health check and verified webhooks) require JWT authentication using the Bearer token scheme.
 
 ### CSRF Protection
 
 State-changing requests (POST, PATCH, DELETE) require a CSRF token:
 
 1. Get a fresh CSRF token from `/api/csrf-token`
-2. Include it in the request headers:
+2. Include it in request headers: `X-CSRF-Token: <token>`
+
+### CORS and Security Headers
+
+All API responses include hardened security headers:
+
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: DENY`
+- `X-XSS-Protection: 1; mode=block`
+- `Strict-Transport-Security: max-age=31536000; includeSubDomains`
+
+---
+
+## Unified Multi-Rail Payment Gateway API
+
+The `/api/billing` router handles multi-currency transactions, enterprise subscriptions, real-time localized bank/wallet routing, and decentralized Web3 crypto checkouts.
+
+### 1. Initiate Payment Charge
 
 ```http
-X-CSRF-Token: <your-csrf-token>
+POST /api/billing/charge
 ```
 
-## Rate Limiting
+Pipes the transaction request to the appropriate rail (Stripe, Paystack, or Web3) based on the user's currency and target checkout format.
 
-The API implements per-endpoint rate limiting to ensure fair usage:
+**Request Body (Paystack local Mobile Money/Card example):**
 
-- **Lenient:** 100 requests per minute (health checks, reads)
-- **Moderate:** 50 requests per minute (moderate operations)
-- **Strict:** 20 requests per minute (write operations, exports)
+```json
+{
+  "gateway": "paystack",
+  "amount": 5000,
+  "currency": "NGN",
+  "email": "producer@feexsystems.com",
+  "planId": "pro_monthly_ngn",
+  "metadata": {
+    "userId": "usr-3wm7890",
+    "split_code": "SPL_1987626"
+  }
+}
+```
 
-Rate limit headers are included in responses:
+**Response (Paystack checkout link):**
 
-- `X-RateLimit-Limit`: Request limit
-- `X-RateLimit-Remaining`: Remaining requests
-- `X-RateLimit-Reset`: Reset timestamp
+```json
+{
+  "success": true,
+  "reference": "pstk_tx_178810239",
+  "authorization_url": "https://checkout.paystack.com/3Ie8r0Zl6bvoZ7vp",
+  "currency": "NGN",
+  "convertedAmount": 5000
+}
+```
 
-## API Endpoints
+**Request Body (Web3 Multi-Chain Deposit example):**
 
-### Health
+```json
+{
+  "gateway": "crypto",
+  "amount": 50,
+  "currency": "USDC",
+  "network": "polygon",
+  "email": "producer@feexsystems.com",
+  "planId": "creator_pack"
+}
+```
 
-#### Health Check
+**Response (Web3 Deposit instructions):**
+
+```json
+{
+  "success": true,
+  "vaultAddress": "0x3WM7A890F3B9A8912E1E6B9D8B2C4E0A8F2E1B4C",
+  "network": "polygon",
+  "estimatedGasGwei": 35,
+  "memo": "PRODUCER_CREDITS"
+}
+```
+
+### 2. Live Currency Converter
 
 ```http
-GET /api/health
+GET /api/billing/convert-currency?amount=50&from=USD&to=NGN
 ```
 
-Returns the current platform status (no authentication required).
+Converts currency metrics using live regional bank conversion layers.
 
 **Response:**
 
 ```json
 {
-  "status": "ok",
-  "platform": "3WM - Sonic AI Platform",
-  "version": "1.0.0",
-  "activeTracks": 0,
-  "time": "2026-08-22T12:00:00.000Z"
+  "amount": 50,
+  "from": "USD",
+  "to": "NGN",
+  "rate": 1550.0,
+  "convertedAmount": 77500.0
 }
 ```
 
-### Authentication
-
-#### Get CSRF Token
+### 3. Stripe Webhook Handler
 
 ```http
-GET /api/csrf-token
+POST /api/billing/webhook/stripe
 ```
 
-Returns a fresh CSRF token for state-changing requests.
+Handles subscription states, payment successes, and identity checks. **Requires Stripe Signature (`stripe-signature`) verification.**
+
+### 4. Paystack Live Webhook Handler
+
+```http
+POST /api/billing/webhook/paystack
+```
+
+Verifies localized payments and triggers automatic **85/15 revenue splits** back into subaccounts.  
+**Security Contract:** Validates incoming payloads utilizing **SHA512 HMAC hashing** matching the server's local token:
+
+```javascript
+const hash = crypto
+  .createHmac('sha512', process.env.PAYSTACK_SECRET_KEY)
+  .update(JSON.stringify(req.body))
+  .digest('hex');
+if (hash !== req.headers['x-paystack-signature']) {
+  throw new Error('Invalid signature');
+}
+```
+
+---
+
+## Google Cloud BigQuery Music ML API
+
+Pushes real-time track sequencing parameters to telemetry tables and pulls predictive accents.
+
+### 1. Send Sequencer Telemetry
+
+```http
+POST /api/analytics/telemetry
+```
+
+Streams sequencer modifications directly to BigQuery tables.
+
+**Request Body:**
+
+```json
+{
+  "sessionId": "sess-3wm982",
+  "trackId": "track-123",
+  "genre": "Amapiano",
+  "bpm": 112,
+  "stepDensity": 0.65,
+  "activeNotes": [1, 5, 9, 13]
+}
+```
 
 **Response:**
 
 ```json
 {
-  "csrfToken": "abc123def456..."
+  "success": true,
+  "logged": true,
+  "timestamp": "2026-08-30T20:29:00Z"
 }
 ```
 
-### Tracks
+### 2. Retrieve Predictive Accent Grooves
 
-#### Get All Tracks
+```http
+GET /api/analytics/predict-accents?genre=Afrofusion&bpm=115
+```
+
+Queries the BigQuery ML forecasting model (`ARIMA_PLUS` + `K-Means`) to estimate syncopated accent beats for step-sequencer patterns.
+
+**Response:**
+
+```json
+{
+  "genre": "Afrofusion",
+  "recommendedAccents": [3, 7, 12, 14],
+  "groovePattern": "Kalakuta_Shrine",
+  "accentConfidence": 0.94
+}
+```
+
+---
+
+## Gemini Live Bidirectional WebSocket API
+
+Provides real-time bidirectional streaming for natural voice conversation and immediate tool execution.
+
+**WebSocket URL:** `ws://localhost:3000/api/audio/live-stream`
+
+### Connection Handshake
+
+Clients must initiate the connection by sending an authentication token:
+
+```json
+{
+  "type": "auth",
+  "token": "your-jwt-token"
+}
+```
+
+### Audio Input Stream (PCM 24kHz / 16-bit Mono)
+
+Clients stream microphone PCM buffers chunks serialized in Base64:
+
+```json
+{
+  "type": "audio",
+  "data": "SUQzBAAAAAAAI1RT..."
+}
+```
+
+### Server Event Stream (Response & Instrument Action)
+
+The server streams bidirectional synthetic vocals and triggers corresponding UI updates:
+
+```json
+{
+  "type": "agent_response",
+  "agent": "ricky",
+  "audio": "base64-encoded-audio...",
+  "actions": [
+    {
+      "type": "WRITE",
+      "command": "UPDATE_STEP_SEQUENCER",
+      "params": { "track": "Kick", "steps": [1, 5, 9, 13] }
+    }
+  ]
+}
+```
+
+---
+
+## Core Track & Sequencer Endpoints
+
+### 1. Get All Tracks
 
 ```http
 GET /api/tracks
@@ -99,37 +261,7 @@ GET /api/tracks
 
 Retrieves all tracks belonging to the authenticated user.
 
-**Response:**
-
-```json
-[
-  {
-    "id": "track-1234567890",
-    "title": "Afrofusion Session 1",
-    "artist": "Kappachino Emar x Kappachino Ricky",
-    "genre": "Afrofusion",
-    "bpm": 112,
-    "key": "F# Minor",
-    "duration": 180,
-    "status": "production",
-    "createdAt": "2026-08-22T12:00:00.000Z"
-  }
-]
-```
-
-#### Get Track by ID
-
-```http
-GET /api/tracks/:id
-```
-
-Retrieves a specific track by its ID.
-
-**Parameters:**
-
-- `id` (path): Track ID
-
-#### Create Track
+### 2. Create Track
 
 ```http
 POST /api/tracks
@@ -137,39 +269,7 @@ POST /api/tracks
 
 Creates a new audio track with default Afrofusion settings.
 
-**Request Body:**
-
-```json
-{
-  "title": "Lagos Nights",
-  "artist": "Kappachino Ricky",
-  "genre": "Afrofusion",
-  "bpm": 115,
-  "key": "D Minor"
-}
-```
-
-**Response:**
-
-```json
-{
-  "id": "track-1234567890",
-  "title": "Lagos Nights",
-  "artist": "Kappachino Ricky",
-  "genre": "Afrofusion",
-  "bpm": 115,
-  "key": "D Minor",
-  "duration": 180,
-  "status": "raw",
-  "settings": {
-    "volume": 0.88,
-    "pan": 0,
-    "eq": { "low": 0, "mid": 0, "high": 0 }
-  }
-}
-```
-
-#### Update Track Settings
+### 3. Update Track Settings
 
 ```http
 PATCH /api/tracks/:id/settings
@@ -177,507 +277,90 @@ PATCH /api/tracks/:id/settings
 
 Updates audio settings, EQ, compression, and mastering parameters.
 
+### 4. 3ONIK Agents Engine Command Execution
+
+```http
+POST /api/voice/3onik-command
+```
+
+Processes natural language and vocal producer commands through the **3ONIK Cognitive Kernel**, routing tasks across the Three Wise Men triad and returning structured action payloads with parameters.
+
 **Request Body:**
 
 ```json
 {
-  "settings": {
-    "volume": 0.9,
-    "eq": { "low": 2.5, "mid": 0, "high": 1.5 },
-    "compression": { "threshold": -18, "ratio": 3 }
+  "prompt": "Ricky, build an Amapiano log drum bounce at 112 BPM",
+  "targetAgent": "ricky",
+  "context": {
+    "genre": "Amapiano",
+    "bpm": 112,
+    "key": "F# min"
   }
 }
 ```
 
-#### Generate Stem
-
-```http
-POST /api/tracks/:id/generate-stem
-```
-
-Generates a new audio stem using AI-powered synthesis.
-
-**Request Body:**
+**Response Body:**
 
 ```json
 {
-  "prompt": "Add a warm bassline with Lagos log-drum character",
-  "type": "bass"
+  "success": true,
+  "agent": "ricky",
+  "reasoning": "Generated syncopated 16-step log drum pattern tuned to F#1 with dynamic accents and pitch bends.",
+  "response": "I laid down the bounce for you. Deep Amapiano log drum groove loaded into the Beat Lab.",
+  "action": {
+    "type": "WRITE",
+    "target": "BEAT_LAB_PATTERN",
+    "payload": {
+      "channelId": "ch-logdrum",
+      "bpm": 112,
+      "steps": [0, 3, 6, 8, 12, 14]
+    }
+  }
 }
 ```
 
-**Response:**
-
-```json
-{
-  "track": {/* updated track object */},
-  "audioUrl": "data:audio/wav;base64,...",
-  "message": "Stem generated successfully"
-}
-```
-
-#### Apply Mastering
-
-```http
-POST /api/tracks/:id/master
-```
-
-Applies AI-powered mastering presets to the track.
-
-**Request Body:**
-
-```json
-{
-  "preset": "Lagos Bounce"
-}
-```
-
-**Available Presets:**
-
-- `Afrofusion Warmth`: Warm, vintage character with rich harmonics
-- `Lagos Bounce`: Punchy, dynamic with enhanced stereo width
-- `Shrine Reverb`: Atmospheric with convolution reverb tails
-- `Clean Mix`: Transparent, modern mastering
-
-### AI Agents
-
-#### Execute AI Agent Command
+### 5. Execute AI Agent Track Command
 
 ```http
 POST /api/tracks/:id/ai-command
 ```
 
-Sends a command to one of the Three Wise Men AI agents.
+Sends track-specific instructions directly to the designated agent (Emar, Ricky, Kingpin) to inspect or modify mixer strips and DSP parameters.
 
-**Request Body:**
+---
 
-```json
-{
-  "agent": "emar",
-  "command": "Add more warmth to the vocals and boost the low-mids"
-}
-```
+## Client & Platform Abstraction Layer (PAL) APIs
 
-**Available Agents:**
+### 1. `PlatformRegistry` (`src/audio/platform/PlatformRegistry.ts`)
+- `PlatformRegistry.getAudioPlatform()`: Returns `IAudioPlatformAdapter` (`NativeAudioAdapter` if in Electron, else `WebAudioAdapter`).
+- `PlatformRegistry.getFileSystem()`: Returns `IFileSystemAdapter` (Desktop direct disk I/O or browser File System Access API).
+- `PlatformRegistry.getMidiPlatform()`: Returns `IMidiPlatformAdapter` (Web MIDI or hardware MIDI interfaces).
+- `PlatformRegistry.getCapabilities()`: Returns `PlatformCapabilities` (supported drivers, buffer sizes, WebGPU support).
 
-- `emar`: Kappachino Emar - The Scientist (audio engineering, DSP, mixing, mastering)
-- `ricky`: Kappachino Ricky - The Sound God (instruments, drums, sound design, groove)
-- `kingpin`: Kingpin - The Vocal Oracle (vocals, vocal arrangement, harmony)
-- `orchestrator`: ThreeWM Orchestrator (coordinates the system)
+### 2. `PluginHostManager` (`src/audio/plugins/PluginHostManager.ts`)
+- `pluginHostManager.scanPlugins()`: Scans and registers system VST3/AU plugins and built-in WASM DSP effects.
+- `pluginHostManager.instantiatePlugin(pluginId)`: Creates a live DSP instance with real-time parameter automation.
+- `pluginHostManager.getActiveInstances()`: Lists all active plugin instances on mixer strips.
 
-**Response:**
+### 3. `ConflictResolver` & `LiveJamEngine` (`src/sync/`)
+- `conflictResolver.updateTrack(trackId, trackData)`: Atomically merges track changes using Yjs CRDT vector clocks.
+- `conflictResolver.exportState()`: Returns `Uint8Array` binary state snapshot for cloud persistence.
+- `liveJamEngine.joinRoom(roomId)`: Connects to peer-to-peer WebRTC audio mesh.
+- `liveJamEngine.requestTrackLock(trackId)`: Claims exclusive edit lock on a track to avoid edit collisions.
 
-```json
-{
-  "track": {/* updated track object */},
-  "responseText": "I've applied a 3dB boost to the low-mids (200-500Hz) and added subtle saturation to the vocal track for warmth."
-}
-```
+### 4. `LocalInferenceEngine` (`src/agents/localInferenceEngine.ts`)
+- `localInferenceEngine.generateChordProgression(rootNote, scaleType, length)`: Local ONNX WebGPU neural chord generator.
+- `localInferenceEngine.predictAfrobeatGrooveVelocity(baseVelocities, genre)`: Generates Amapiano / Afrobeats micro-timing velocity curves.
 
-### Exports
+### 5. `ProductionDiagnostics` (`src/telemetry/ProductionDiagnostics.ts`)
+- `productionDiagnostics.captureSnapshot()`: Retrieves real-time DSP latency, buffer underruns (xruns), and audio thread CPU load.
+- `productionDiagnostics.subscribe(callback)`: Real-time telemetry stream listener for UI HUDs.
 
-#### Get Export Quota
+---
 
-```http
-GET /api/projects/:id/export-quota?sampleRate=48000&bitDepth=24&format=wav
-```
+## Support & Interactive Console
 
-Returns export quota information and estimated cost.
+- Swagger UI: `https://3wm-sonik.com/api-docs`
+- Tech Support: `developer@feexsystems.com`  
+  🔱
 
-**Response:**
-
-```json
-{
-  "estimatedUnits": 2.4,
-  "remainingUnits": 97.6,
-  "canExport": true,
-  "planLimit": 100,
-  "format": "wav",
-  "sampleRate": 48000,
-  "bitDepth": 24,
-  "costDescription": "Studio Lossless 24-bit / 48kHz Render"
-}
-```
-
-#### Create Export Job
-
-```http
-POST /api/projects/:id/exports
-```
-
-Creates a new audio export job.
-
-**Request Body:**
-
-```json
-{
-  "format": "wav",
-  "sampleRate": 48000,
-  "bitDepth": 24,
-  "includeStems": false,
-  "masterPreset": "Lagos Bounce",
-  "idempotencyKey": "export-abc123"
-}
-```
-
-**Response:**
-
-```json
-{
-  "id": "job-1234567890-abc",
-  "projectId": "track-1234567890",
-  "trackTitle": "Afrofusion Session 1",
-  "status": "processing",
-  "format": "wav",
-  "sampleRate": 48000,
-  "bitDepth": 24,
-  "progressPercent": 20,
-  "createdAt": "2026-08-22T12:00:00.000Z"
-}
-```
-
-#### Get Export Job Status
-
-```http
-GET /api/exports/:jobId
-```
-
-Retrieves the status and progress of an export job.
-
-**Response:**
-
-```json
-{
-  "id": "job-1234567890-abc",
-  "status": "completed",
-  "progressPercent": 100,
-  "completedAt": "2026-08-22T12:01:30.000Z",
-  "outputUrl": "/api/exports/job-1234567890-abc/download"
-}
-```
-
-#### Download Export
-
-```http
-GET /api/exports/:jobId/download
-```
-
-Downloads the completed audio export as a WAV file.
-
-#### Download Stems ZIP
-
-```http
-GET /api/exports/:jobId/download-zip
-```
-
-Downloads all stems and master as a ZIP archive.
-
-### Vocal
-
-#### Synthesize Vocal
-
-```http
-POST /api/vocal/synthesize
-```
-
-Converts text to speech using ElevenLabs AI voice synthesis.
-
-**Request Body:**
-
-```json
-{
-  "text": "Three Wise Men, one vision, infinite sound.",
-  "voiceId": "21m00Tcm4TlvDq8ikWAM",
-  "model": "eleven_multilingual_v2",
-  "outputFormat": "mp3"
-}
-```
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "audioUrl": "data:audio/mp3;base64,SUQzBAAAAAAAI1RT...",
-  "format": "mp3",
-  "duration": 2456
-}
-```
-
-#### Clone Voice
-
-```http
-POST /api/vocal/clone-voice
-```
-
-Creates a custom voice clone from audio samples.
-
-**Request Body:**
-
-```json
-{
-  "name": "Custom Afrofusion Voice",
-  "description": "Voice with warm Lagos character",
-  "samples": [
-    { "data": "base64-encoded-audio-sample-1" },
-    { "data": "base64-encoded-audio-sample-2" }
-  ]
-}
-```
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "voiceId": "custom-voice-123",
-  "name": "Custom Afrofusion Voice",
-  "message": "Voice cloned successfully"
-}
-```
-
-#### Get Available Voices
-
-```http
-GET /api/vocal/voices
-```
-
-Retrieves all available voices from ElevenLabs.
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "voices": [
-    {
-      "voice_id": "21m00Tcm4TlvDq8ikWAM",
-      "name": "Rachel",
-      "labels": { "accent": "American", "description": "Soft", "age": "Young" }
-    }
-  ]
-}
-```
-
-### Projects
-
-#### Archive Project
-
-```http
-PATCH /api/projects/:id/archive
-```
-
-Archives or unarchives a project.
-
-**Request Body:**
-
-```json
-{
-  "archived": true
-}
-```
-
-### Memory
-
-#### Get Vector Memory
-
-```http
-GET /api/vector-memory
-```
-
-Retrieves all items from the vector memory knowledge base.
-
-**Response:**
-
-```json
-[
-  {
-    "id": "mem-1",
-    "content": "Afrofusion production techniques",
-    "embedding": [0.1, 0.2, 0.3]
-  }
-]
-```
-
-### Collaboration
-
-#### Get n8n Workflows
-
-```http
-GET /api/n8n/workflows
-```
-
-Retrieves all available n8n automation workflows.
-
-**Response:**
-
-```json
-[
-  {
-    "id": "wf-1",
-    "name": "Auto-Mastering Pipeline",
-    "status": "active"
-  }
-]
-```
-
-#### Trigger n8n Workflow
-
-```http
-POST /api/n8n/workflows/:id/trigger
-```
-
-Triggers a specific n8n automation workflow.
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "workflow": {/* workflow object */},
-  "message": "Workflow \"Auto-Mastering Pipeline\" executed successfully"
-}
-```
-
-## Error Handling
-
-The API uses standard HTTP status codes and returns error details in the response body:
-
-```json
-{
-  "error": "Error message",
-  "message": "Detailed error message",
-  "statusCode": 400
-}
-```
-
-**Common Status Codes:**
-
-- `200 OK`: Request successful
-- `201 Created`: Resource created successfully
-- `400 Bad Request`: Invalid request parameters
-- `401 Unauthorized`: Authentication required or invalid
-- `403 Forbidden`: Insufficient permissions
-- `404 Not Found`: Resource not found
-- `429 Too Many Requests`: Rate limit exceeded
-- `500 Internal Server Error`: Server error
-
-## Security
-
-### Security Headers
-
-All API responses include security headers:
-
-- `X-Content-Type-Options: nosniff`
-- `X-Frame-Options: DENY`
-- `X-XSS-Protection: 1; mode=block`
-- `Strict-Transport-Security: max-age=31536000; includeSubDomains`
-- `Content-Security-Policy`: Default CSP policy
-
-### CORS
-
-Cross-Origin Resource Sharing is configured for authorized domains. Contact support to whitelist your domain.
-
-## SDK Examples
-
-### JavaScript/TypeScript
-
-```typescript
-// Authentication
-const login = async (email: string, password: string) => {
-  const response = await fetch('/api/auth/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  });
-  const { token } = await response.json();
-  return token;
-};
-
-// Create Track
-const createTrack = async (token: string, trackData: CreateTrackRequest) => {
-  const csrfResponse = await fetch('/api/csrf-token', {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  const { csrfToken } = await csrfResponse.json();
-
-  const response = await fetch('/api/tracks', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'X-CSRF-Token': csrfToken,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(trackData),
-  });
-  return response.json();
-};
-
-// AI Agent Command
-const executeAgentCommand = async (
-  token: string,
-  trackId: string,
-  agent: string,
-  command: string
-) => {
-  const csrfResponse = await fetch('/api/csrf-token', {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  const { csrfToken } = await csrfResponse.json();
-
-  const response = await fetch(`/api/tracks/${trackId}/ai-command`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'X-CSRF-Token': csrfToken,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ agent, command }),
-  });
-  return response.json();
-};
-```
-
-### cURL
-
-```bash
-# Health Check
-curl http://localhost:3000/api/health
-
-# Create Track
-TOKEN="your-jwt-token"
-CSRF_TOKEN=$(curl -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/csrf-token | jq -r '.csrfToken')
-
-curl -X POST http://localhost:3000/api/tracks \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "X-CSRF-Token: $CSRF_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Lagos Nights","artist":"Kappachino Ricky","genre":"Afrofusion"}'
-
-# AI Agent Command
-curl -X POST http://localhost:3000/api/tracks/track-123/ai-command \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "X-CSRF-Token: $CSRF_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"agent":"emar","command":"Add warmth to the vocals"}'
-```
-
-## Support
-
-For API support and questions:
-
-- Email: support@3wm-sonik.com
-- Documentation: https://docs.3wm-sonik.com
-- Interactive API: https://3wm-sonik.com/api-docs
-
-## Changelog
-
-### Version 1.0.0 (2026-08-22)
-
-- Initial API release
-- Track management endpoints
-- AI agent integration
-- Vocal synthesis
-- Export system
-- Real-time collaboration
-- Vector memory
